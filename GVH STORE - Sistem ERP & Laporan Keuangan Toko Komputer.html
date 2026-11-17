@@ -1,0 +1,3678 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GVH STORE — ERP & Sistem Laporan Keuangan Toko Komputer</title>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: '#090A0F',
+            surface: '#12141E',
+            card: '#181B28',
+            cardHover: '#1F2334',
+            electric: '#3B82F6',
+            cyanGlow: '#0EA5E9',
+            violetAccent: '#8B5CF6',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- SheetJS (XLSX) CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- jsPDF & AutoTable CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    body {
+      background-color: #090A0F;
+      color: #E2E8F0;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090A0F;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #272B3F;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3B82F6;
+    }
+
+    .glass-card {
+      background: linear-gradient(145deg, rgba(24, 27, 40, 0.95), rgba(18, 20, 30, 0.98));
+      border: 1px solid rgba(59, 130, 246, 0.14);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+    }
+
+    .glass-card-hover:hover {
+      border-color: rgba(59, 130, 246, 0.38);
+      transform: translateY(-2px);
+      transition: all 0.2s ease;
+    }
+
+    .nav-item-active {
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.22) 0%, rgba(139, 92, 246, 0.12) 100%);
+      border-left: 3px solid #3B82F6;
+      color: #FFFFFF;
+    }
+
+    .gradient-btn {
+      background: linear-gradient(135deg, #3B82F6 0%, #6366F1 50%, #8B5CF6 100%);
+      transition: all 0.2s ease;
+    }
+    .gradient-btn:hover {
+      filter: brightness(1.12);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Print Styles for Receipt & Purchase Order */
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #print-area, #print-area * {
+        visibility: visible !important;
+      }
+      #print-area {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 20px !important;
+        box-shadow: none !important;
+        border: none !important;
+        z-index: 99999 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col lg:flex-row selection:bg-blue-500 selection:text-white">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Mobile Sidebar Backdrop -->
+  <div id="sidebar-backdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 hidden lg:hidden"></div>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-40 h-screen w-72 bg-[#0D0F17] border-r border-slate-800/80 flex flex-col transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shrink-0">
+    <!-- Brand Header -->
+    <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
+            GVH <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">STORE</span>
+          </h1>
+          <p class="text-[11px] text-slate-400 font-medium">Computer ERP & Finance</p>
+        </div>
+      </div>
+      <button onclick="toggleMobileSidebar(false)" class="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav id="sidebar-nav" class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <!-- Rendered via JS -->
+    </nav>
+
+    <!-- Sync & Database Status Footer -->
+    <div class="p-4 border-t border-slate-800/80 bg-[#0A0C12]">
+      <div class="flex items-center justify-between text-xs mb-1.5">
+        <span class="text-slate-400">Status Penyimpanan</span>
+        <span id="db-status-badge" class="inline-flex items-center gap-1.5 font-semibold text-emerald-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Tersinkron
+        </span>
+      </div>
+      <p id="db-status-detail" class="text-[11px] text-slate-500 truncate">Penyimpanan Persisten Aktif</p>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT WRAPPER -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- TOP HEADER BAR -->
+    <header class="sticky top-0 z-20 bg-[#090A0F]/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 py-3.5">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleMobileSidebar(true)" class="lg:hidden p-2.5 rounded-xl bg-slate-800/70 text-slate-200 hover:bg-slate-700 border border-slate-700">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h2 id="page-title" class="text-lg sm:text-xl font-bold text-white">Dashboard Eksekutif</h2>
+              <span id="simulation-badge" class="px-2.5 py-0.5 text-[11px] font-bold tracking-wider uppercase rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                DATA SIMULASI - NOVEMBER 2026
+              </span>
+            </div>
+            <p id="page-subtitle" class="text-xs text-slate-400 hidden sm:block">Ringkasan kinerja keuangan, penjualan, dan stok GVH STORE secara real-time</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <!-- Period Indicator -->
+          <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#12141E] border border-slate-800 text-xs text-slate-300">
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="header-period-label" class="font-semibold">Periode: November 2026</span>
+          </div>
+
+          <!-- Quick POS Button -->
+          <button onclick="navigateTo('penjualan'); openSaleModal();" class="gradient-btn text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-xl flex items-center gap-2 shadow-lg">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Transaksi Baru</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- DYNAMIC PAGE VIEWPORT -->
+    <main id="app-content" class="flex-1 p-4 sm:p-6 max-w-[1600px] w-full mx-auto space-y-6">
+      <!-- Content injected dynamically by JS -->
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800/70 px-6 py-4 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <span>&copy; 2026 <strong class="text-slate-300">GVH STORE</strong> — Sistem Manajemen Toko Komputer & Akuntansi Terpadu</span>
+      <span>Mata Uang: <strong class="text-blue-400">IDR (Rupiah)</strong> • Seluruh kalkulasi saling terhubung otomatis</span>
+    </footer>
+  </div>
+
+  <!-- UNIVERSAL MODAL CONTAINER -->
+  <div id="modal-overlay" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4 overflow-y-auto">
+    <div id="modal-box" class="bg-[#141724] border border-slate-700/80 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden my-auto transform transition-all">
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-[#10121C]">
+        <h3 id="modal-title" class="text-base sm:text-lg font-bold text-white">Modal Title</h3>
+        <button onclick="closeModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="modal-body" class="p-6 max-h-[82vh] overflow-y-auto">
+        <!-- Dynamic form / receipt / confirmation -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- FIREBASE + APPLICATION CORE LOGIC                                     -->
+  <!-- ===================================================================== -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Expose Firebase helpers to window for seamless integration with main app script
+    window.__fbReady = false;
+    window.__fbSyncSave = async (stateObj) => {
+      if (!window.__fbReady || !window.__fbDocRef) return;
+      try {
+        await setDoc(window.__fbDocRef, {
+          payload: JSON.stringify(stateObj),
+          updatedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn("Firebase background sync skipped:", err.message);
+      }
+    };
+
+    async function initCloudPersistence() {
+      try {
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+          const firebaseConfig = JSON.parse(__firebase_config);
+          const appId = typeof __app_id !== 'undefined' ? __app_id : 'gvh-store-erp';
+          const app = initializeApp(firebaseConfig);
+          const auth = getAuth(app);
+          const db = getFirestore(app);
+
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+
+          const user = auth.currentUser;
+          if (user) {
+            window.__fbDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'gvh_store_erp', 'main_state');
+            window.__fbReady = true;
+
+            const snap = await getDoc(window.__fbDocRef);
+            if (snap.exists() && snap.data().payload) {
+              const cloudState = JSON.parse(snap.data().payload);
+              if (cloudState && cloudState.products) {
+                window.hydrateFromCloud(cloudState);
+              }
+            } else {
+              // Seed initial state to cloud
+              await window.__fbSyncSave(window.getAppState());
+            }
+
+            const badge = document.getElementById('db-status-badge');
+            const detail = document.getElementById('db-status-detail');
+            if (badge) badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Cloud & Lokal Aktif`;
+            if (detail) detail.textContent = `Tersinkron Otomatis (ID: ${user.uid.slice(0, 8)}...)`;
+          }
+        }
+      } catch (e) {
+        console.info("Berjalan dalam mode penyimpanan lokal persisten:", e.message);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCloudPersistence();
+    });
+  </script>
+
+  <script>
+    // =========================================================================
+    // 1. UTILITY & FORMATTERS (INDONESIA / IDR)
+    // =========================================================================
+    const STORAGE_KEY = 'GVH_STORE_ERP_STATE_V1';
+
+    function formatIDR(amount) {
+      const num = Number(amount) || 0;
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(num);
+    }
+
+    function formatNumber(num) {
+      return new Intl.NumberFormat('id-ID').format(Number(num) || 0);
+    }
+
+    function formatDateID(dateStr) {
+      if (!dateStr) return '-';
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      return `${parts[2]} ${months[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+    }
+
+    function escapeHTML(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-950/95 border-emerald-500/60 text-emerald-200',
+        error: 'bg-rose-950/95 border-rose-500/60 text-rose-200',
+        info: 'bg-blue-950/95 border-blue-500/60 text-blue-200',
+        warning: 'bg-amber-950/95 border-amber-500/60 text-amber-200'
+      };
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-xl text-xs sm:text-sm font-medium flex items-center gap-2.5 backdrop-blur-md transition-all duration-300 ${colors[type] || colors.info}`;
+      toast.innerHTML = `
+        <span class="w-2 h-2 rounded-full ${type === 'error' ? 'bg-rose-400' : type === 'warning' ? 'bg-amber-400' : 'bg-emerald-400'}"></span>
+        <span>${escapeHTML(message)}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    // =========================================================================
+    // 2. REALISTIC SIMULATION SEED DATA (NOVEMBER 2026)
+    // =========================================================================
+    function generateInitialSimulationState() {
+      const settings = {
+        storeName: 'GVH STORE',
+        tagline: 'Pusat Komputer, Laptop, Rakitan PC & Jaringan Profesional',
+        address: 'Jl. Jenderal Sudirman No. 88, Kec. Jambi Selatan, Kota Jambi 36139',
+        phone: '0812-7890-4455',
+        email: 'finance@gvhstore.co.id',
+        npwp: '09.482.771.4-331.000',
+        periodLabel: 'November 2026',
+        openingCash: 85000000,
+        isSimulation: true
+      };
+
+      const suppliers = [
+        { id: 'SUP-01', name: 'PT Astrindo Senayasa', contact: 'Budi Santoso (021-6121330)', address: 'Mangga Dua Mall Lt. 4, Jakarta Pusat', categories: 'Laptop ASUS, VGA Card, Motherboard' },
+        { id: 'SUP-02', name: 'PT Synnex Metrodata Indonesia', contact: 'Rina Wijaya (021-29345800)', address: 'APL Tower Lt. 42, Jakarta Barat', categories: 'Processor Intel/AMD, Laptop Lenovo & HP' },
+        { id: 'SUP-03', name: 'PT Nusantara Jaya Komputer', contact: 'Hendra Gunawan (031-5348821)', address: 'Hi-Tech Mall Lt. 2, Surabaya', categories: 'RAM, SSD NVMe, HDD, Power Supply' },
+        { id: 'SUP-04', name: 'CV Megah Tech Distribusi', contact: 'Dedi Kurniawan (0741-445210)', address: 'Jl. Gatot Subroto No. 45, Kota Jambi', categories: 'Monitor, Casing PC, Keyboard & Mouse' },
+        { id: 'SUP-05', name: 'PT Asia Global Jaringan', contact: 'Lestari Putri (021-62309912)', address: 'Harco Mangga Dua Blok B, Jakarta', categories: 'Router Wi-Fi, Switch Gigabit, Kabel LAN' }
+      ];
+
+      const employees = [
+        { id: 'KRY-01', name: 'Andika Pratama', role: 'Kepala Toko & Kasir Senior', phone: '0812-7411-2001', status: 'Aktif' },
+        { id: 'KRY-02', name: 'Sinta Maharani', role: 'Sales Executive & Kasir', phone: '0852-6630-8812', status: 'Aktif' },
+        { id: 'KRY-03', name: 'Reza Fauzan', role: 'Teknisi Rakitan PC & Sales', phone: '0821-8900-3419', status: 'Aktif' },
+        { id: 'KRY-04', name: 'Dimas Saputra', role: 'Admin Gudang & Kasir', phone: '0813-6754-9022', status: 'Aktif' }
+      ];
+
+      // 26 Realistic Computer Store Products (SKU GVH-001 to GVH-026)
+      const products = [
+        { sku: 'GVH-001', name: 'ASUS Vivobook 14 OLED (i5-13500H / 16GB / 512GB)', category: 'Laptop', brand: 'ASUS', costPrice: 9450000, sellPrice: 10899000, stock: 7, minStock: 3, supplier: 'PT Astrindo Senayasa' },
+        { sku: 'GVH-002', name: 'ASUS ROG Strix G16 (i7-13650HX / RTX 4060 / 16GB)', category: 'Laptop', brand: 'ASUS', costPrice: 18200000, sellPrice: 20499000, stock: 3, minStock: 2, supplier: 'PT Astrindo Senayasa' },
+        { sku: 'GVH-003', name: 'Acer Aspire 5 Spin 14 Touch (i5-1335U / 16GB / 512GB)', category: 'Laptop', brand: 'Acer', costPrice: 8800000, sellPrice: 10150000, stock: 6, minStock: 3, supplier: 'PT Synnex Metrodata Indonesia' },
+        { sku: 'GVH-004', name: 'Lenovo IdeaPad Slim 5 (Ryzen 7 7730U / 16GB / 512GB)', category: 'Laptop', brand: 'Lenovo', costPrice: 9100000, sellPrice: 10450000, stock: 8, minStock: 3, supplier: 'PT Synnex Metrodata Indonesia' },
+        { sku: 'GVH-005', name: 'HP Pavilion Plus 14 (i7-13700H / 16GB / 1TB SSD)', category: 'Laptop', brand: 'HP', costPrice: 12400000, sellPrice: 13990000, stock: 2, minStock: 3, supplier: 'PT Synnex Metrodata Indonesia' },
+        { sku: 'GVH-006', name: 'Processor Intel Core i5-14400F (10 Cores, LGA1700)', category: 'Processor', brand: 'Intel', costPrice: 2850000, sellPrice: 3290000, stock: 12, minStock: 4, supplier: 'PT Synnex Metrodata Indonesia' },
+        { sku: 'GVH-007', name: 'Processor Intel Core i7-14700K (20 Cores, LGA1700)', category: 'Processor', brand: 'Intel', costPrice: 5750000, sellPrice: 6450000, stock: 5, minStock: 3, supplier: 'PT Synnex Metrodata Indonesia' },
+        { sku: 'GVH-008', name: 'Processor AMD Ryzen 5 7500F Tray + Cooler (AM5)', category: 'Processor', brand: 'AMD', costPrice: 2350000, sellPrice: 2750000, stock: 11, minStock: 4, supplier: 'PT Synnex Metrodata Indonesia' },
+        { sku: 'GVH-009', name: 'Processor AMD Ryzen 7 7800X3D Gaming (AM5)', category: 'Processor', brand: 'AMD', costPrice: 5900000, sellPrice: 6690000, stock: 4, minStock: 3, supplier: 'PT Synnex Metrodata Indonesia' },
+        { sku: 'GVH-010', name: 'Motherboard ASUS Prime B760M-A WiFi DDR5', category: 'Motherboard', brand: 'ASUS', costPrice: 2150000, sellPrice: 2550000, stock: 9, minStock: 3, supplier: 'PT Astrindo Senayasa' },
+        { sku: 'GVH-011', name: 'Motherboard MSI MAG B650M Mortar WiFi AM5', category: 'Motherboard', brand: 'MSI', costPrice: 2890000, sellPrice: 3350000, stock: 6, minStock: 3, supplier: 'PT Astrindo Senayasa' },
+        { sku: 'GVH-012', name: 'RAM Corsair Vengeance LPX DDR4 16GB (2x8GB) 3200MHz', category: 'RAM', brand: 'Corsair', costPrice: 620000, sellPrice: 765000, stock: 18, minStock: 5, supplier: 'PT Nusantara Jaya Komputer' },
+        { sku: 'GVH-013', name: 'RAM Kingston Fury Beast DDR5 32GB (2x16GB) 5600MHz', category: 'RAM', brand: 'Kingston', costPrice: 1480000, sellPrice: 1790000, stock: 10, minStock: 4, supplier: 'PT Nusantara Jaya Komputer' },
+        { sku: 'GVH-014', name: 'SSD Samsung 980 PRO 1TB NVMe PCIe Gen4', category: 'Storage', brand: 'Samsung', costPrice: 1290000, sellPrice: 1550000, stock: 14, minStock: 5, supplier: 'PT Nusantara Jaya Komputer' },
+        { sku: 'GVH-015', name: 'SSD WD Blue SN580 500GB NVMe Gen4', category: 'Storage', brand: 'Western Digital', costPrice: 580000, sellPrice: 710000, stock: 16, minStock: 5, supplier: 'PT Nusantara Jaya Komputer' },
+        { sku: 'GVH-016', name: 'HDD Seagate Barracuda 2TB 3.5" SATA 7200RPM', category: 'Storage', brand: 'Seagate', costPrice: 820000, sellPrice: 985000, stock: 9, minStock: 4, supplier: 'PT Nusantara Jaya Komputer' },
+        { sku: 'GVH-017', name: 'VGA ASUS Dual GeForce RTX 4060 8GB OC Edition', category: 'VGA Card', brand: 'ASUS', costPrice: 4450000, sellPrice: 5050000, stock: 6, minStock: 3, supplier: 'PT Astrindo Senayasa' },
+        { sku: 'GVH-018', name: 'VGA Gigabyte RTX 4070 Super Eagle OC 12GB', category: 'VGA Card', brand: 'Gigabyte', costPrice: 9350000, sellPrice: 10450000, stock: 2, minStock: 3, supplier: 'PT Astrindo Senayasa' },
+        { sku: 'GVH-019', name: 'PSU Corsair CX650 650W 80+ Bronze Non-Modular', category: 'Power Supply', brand: 'Corsair', costPrice: 790000, sellPrice: 950000, stock: 13, minStock: 4, supplier: 'PT Nusantara Jaya Komputer' },
+        { sku: 'GVH-020', name: 'PSU MSI MAG A750GL PCIe5 750W 80+ Gold Full Modular', category: 'Power Supply', brand: 'MSI', costPrice: 1320000, sellPrice: 1580000, stock: 7, minStock: 3, supplier: 'PT Nusantara Jaya Komputer' },
+        { sku: 'GVH-021', name: 'Casing PC Lian Li Lancool 216 RGB Tempered Glass Black', category: 'Casing PC', brand: 'Lian Li', costPrice: 1380000, sellPrice: 1650000, stock: 5, minStock: 2, supplier: 'CV Megah Tech Distribusi' },
+        { sku: 'GVH-022', name: 'Monitor LG UltraGear 24GS60F 24" FHD 180Hz IPS 1ms', category: 'Monitor', brand: 'LG', costPrice: 1850000, sellPrice: 2190000, stock: 8, minStock: 3, supplier: 'CV Megah Tech Distribusi' },
+        { sku: 'GVH-023', name: 'Mouse Wireless Logitech G304 Lightspeed Gaming Black', category: 'Aksesoris', brand: 'Logitech', costPrice: 460000, sellPrice: 575000, stock: 22, minStock: 6, supplier: 'CV Megah Tech Distribusi' },
+        { sku: 'GVH-024', name: 'Keyboard Mechanical Keychron K2 V2 Wireless Hot-Swap', category: 'Aksesoris', brand: 'Keychron', costPrice: 1120000, sellPrice: 1350000, stock: 3, minStock: 4, supplier: 'CV Megah Tech Distribusi' },
+        { sku: 'GVH-025', name: 'Router Wi-Fi 6 TP-Link Archer AX55 AX3000 Dual-Band', category: 'Jaringan', brand: 'TP-Link', costPrice: 840000, sellPrice: 1025000, stock: 11, minStock: 4, supplier: 'PT Asia Global Jaringan' },
+        { sku: 'GVH-026', name: 'Switch Gigabit TP-Link TL-SG108 8-Port + Kabel Belden Cat6 15m', category: 'Jaringan', brand: 'TP-Link', costPrice: 365000, sellPrice: 465000, stock: 15, minStock: 5, supplier: 'PT Asia Global Jaringan' }
+      ];
+
+      // 13 Realistic Purchase Orders in November 2026
+      const purchases = [
+        {
+          id: 'PO-202611-001', date: '2026-11-01', supplier: 'PT Astrindo Senayasa', status: 'Lunas',
+          items: [
+            { sku: 'GVH-001', name: 'ASUS Vivobook 14 OLED (i5-13500H / 16GB / 512GB)', qty: 5, buyPrice: 9450000 },
+            { sku: 'GVH-017', name: 'VGA ASUS Dual GeForce RTX 4060 8GB OC Edition', qty: 4, buyPrice: 4450000 }
+          ]
+        },
+        {
+          id: 'PO-202611-002', date: '2026-11-02', supplier: 'PT Synnex Metrodata Indonesia', status: 'Lunas',
+          items: [
+            { sku: 'GVH-006', name: 'Processor Intel Core i5-14400F (10 Cores, LGA1700)', qty: 10, buyPrice: 2850000 },
+            { sku: 'GVH-008', name: 'Processor AMD Ryzen 5 7500F Tray + Cooler (AM5)', qty: 8, buyPrice: 2350000 }
+          ]
+        },
+        {
+          id: 'PO-202611-003', date: '2026-11-03', supplier: 'PT Nusantara Jaya Komputer', status: 'Lunas',
+          items: [
+            { sku: 'GVH-012', name: 'RAM Corsair Vengeance LPX DDR4 16GB (2x8GB) 3200MHz', qty: 15, buyPrice: 620000 },
+            { sku: 'GVH-014', name: 'SSD Samsung 980 PRO 1TB NVMe PCIe Gen4', qty: 12, buyPrice: 1290000 }
+          ]
+        },
+        {
+          id: 'PO-202611-004', date: '2026-11-04', supplier: 'CV Megah Tech Distribusi', status: 'Lunas',
+          items: [
+            { sku: 'GVH-022', name: 'Monitor LG UltraGear 24GS60F 24" FHD 180Hz IPS 1ms', qty: 8, buyPrice: 1850000 },
+            { sku: 'GVH-023', name: 'Mouse Wireless Logitech G304 Lightspeed Gaming Black', qty: 20, buyPrice: 460000 }
+          ]
+        },
+        {
+          id: 'PO-202611-005', date: '2026-11-05', supplier: 'PT Asia Global Jaringan', status: 'Lunas',
+          items: [
+            { sku: 'GVH-025', name: 'Router Wi-Fi 6 TP-Link Archer AX55 AX3000 Dual-Band', qty: 10, buyPrice: 840000 },
+            { sku: 'GVH-026', name: 'Switch Gigabit TP-Link TL-SG108 8-Port + Kabel Belden Cat6 15m', qty: 15, buyPrice: 365000 }
+          ]
+        },
+        {
+          id: 'PO-202611-006', date: '2026-11-07', supplier: 'PT Synnex Metrodata Indonesia', status: 'Lunas',
+          items: [
+            { sku: 'GVH-004', name: 'Lenovo IdeaPad Slim 5 (Ryzen 7 7730U / 16GB / 512GB)', qty: 6, buyPrice: 9100000 },
+            { sku: 'GVH-003', name: 'Acer Aspire 5 Spin 14 Touch (i5-1335U / 16GB / 512GB)', qty: 5, buyPrice: 8800000 }
+          ]
+        },
+        {
+          id: 'PO-202611-007', date: '2026-11-08', supplier: 'PT Astrindo Senayasa', status: 'Lunas',
+          items: [
+            { sku: 'GVH-002', name: 'ASUS ROG Strix G16 (i7-13650HX / RTX 4060 / 16GB)', qty: 3, buyPrice: 18200000 },
+            { sku: 'GVH-010', name: 'Motherboard ASUS Prime B760M-A WiFi DDR5', qty: 8, buyPrice: 2150000 }
+          ]
+        },
+        {
+          id: 'PO-202611-008', date: '2026-11-10', supplier: 'PT Nusantara Jaya Komputer', status: 'Lunas',
+          items: [
+            { sku: 'GVH-013', name: 'RAM Kingston Fury Beast DDR5 32GB (2x16GB) 5600MHz', qty: 8, buyPrice: 1480000 },
+            { sku: 'GVH-019', name: 'PSU Corsair CX650 650W 80+ Bronze Non-Modular', qty: 10, buyPrice: 790000 }
+          ]
+        },
+        {
+          id: 'PO-202611-009', date: '2026-11-11', supplier: 'PT Astrindo Senayasa', status: 'Lunas',
+          items: [
+            { sku: 'GVH-018', name: 'VGA Gigabyte RTX 4070 Super Eagle OC 12GB', qty: 3, buyPrice: 9350000 },
+            { sku: 'GVH-011', name: 'Motherboard MSI MAG B650M Mortar WiFi AM5', qty: 5, buyPrice: 2890000 }
+          ]
+        },
+        {
+          id: 'PO-202611-010', date: '2026-11-13', supplier: 'CV Megah Tech Distribusi', status: 'Lunas',
+          items: [
+            { sku: 'GVH-021', name: 'Casing PC Lian Li Lancool 216 RGB Tempered Glass Black', qty: 5, buyPrice: 1380000 },
+            { sku: 'GVH-024', name: 'Keyboard Mechanical Keychron K2 V2 Wireless Hot-Swap', qty: 6, buyPrice: 1120000 }
+          ]
+        },
+        {
+          id: 'PO-202611-011', date: '2026-11-14', supplier: 'PT Nusantara Jaya Komputer', status: 'Lunas',
+          items: [
+            { sku: 'GVH-015', name: 'SSD WD Blue SN580 500GB NVMe Gen4', qty: 12, buyPrice: 580000 },
+            { sku: 'GVH-020', name: 'PSU MSI MAG A750GL PCIe5 750W 80+ Gold Full Modular', qty: 6, buyPrice: 1320000 }
+          ]
+        },
+        {
+          id: 'PO-202611-012', date: '2026-11-15', supplier: 'PT Synnex Metrodata Indonesia', status: 'Belum Lunas',
+          items: [
+            { sku: 'GVH-007', name: 'Processor Intel Core i7-14700K (20 Cores, LGA1700)', qty: 4, buyPrice: 5750000 },
+            { sku: 'GVH-009', name: 'Processor AMD Ryzen 7 7800X3D Gaming (AM5)', qty: 4, buyPrice: 5900000 }
+          ]
+        },
+        {
+          id: 'PO-202611-013', date: '2026-11-16', supplier: 'PT Nusantara Jaya Komputer', status: 'Belum Lunas',
+          items: [
+            { sku: 'GVH-016', name: 'HDD Seagate Barracuda 2TB 3.5" SATA 7200RPM', qty: 8, buyPrice: 820000 }
+          ]
+        }
+      ].map(po => {
+        const total = po.items.reduce((sum, it) => sum + (it.qty * it.buyPrice), 0);
+        return { ...po, total };
+      });
+
+      // 22 Realistic Sales Transactions in November 2026 (INV-202611-001 to 022)
+      const rawSales = [
+        {
+          id: 'INV-202611-001', date: '2026-11-01', customer: 'Rizky Ramadhan', cashier: 'Andika Pratama', method: 'Transfer', discount: 199000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-001', qty: 1 },
+            { sku: 'GVH-023', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-002', date: '2026-11-02', customer: 'CV Karya Mandiri Jambi', cashier: 'Sinta Maharani', method: 'Transfer', discount: 150000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-025', qty: 2 },
+            { sku: 'GVH-026', qty: 3 }
+          ]
+        },
+        {
+          id: 'INV-202611-003', date: '2026-11-03', customer: 'Fajar Nugroho (Rakitan Gaming)', cashier: 'Reza Fauzan', method: 'Transfer', discount: 350000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-006', qty: 1 },
+            { sku: 'GVH-010', qty: 1 },
+            { sku: 'GVH-013', qty: 1 },
+            { sku: 'GVH-017', qty: 1 },
+            { sku: 'GVH-019', qty: 1 },
+            { sku: 'GVH-021', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-004', date: '2026-11-04', customer: 'Nadia Putri Utami', cashier: 'Sinta Maharani', method: 'QRIS', discount: 0, status: 'Selesai',
+          items: [
+            { sku: 'GVH-014', qty: 1 },
+            { sku: 'GVH-012', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-005', date: '2026-11-05', customer: 'Dr. Hendra Wijaya', cashier: 'Andika Pratama', method: 'Transfer', discount: 299000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-002', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-006', date: '2026-11-06', customer: 'Warnet & Arena Esport Nexus', cashier: 'Reza Fauzan', method: 'Transfer', discount: 250000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-022', qty: 3 },
+            { sku: 'GVH-023', qty: 3 }
+          ]
+        },
+        {
+          id: 'INV-202611-007', date: '2026-11-07', customer: 'Siti Aisyah', cashier: 'Dimas Saputra', method: 'Cash', discount: 150000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-004', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-008', date: '2026-11-08', customer: 'Bagus Setiawan', cashier: 'Reza Fauzan', method: 'Transfer', discount: 400000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-009', qty: 1 },
+            { sku: 'GVH-011', qty: 1 },
+            { sku: 'GVH-018', qty: 1 },
+            { sku: 'GVH-020', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-009', date: '2026-11-09', customer: 'PT Sumber Makmur Abadi', cashier: 'Andika Pratama', method: 'Transfer', discount: 300000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-003', qty: 2 }
+          ]
+        },
+        {
+          id: 'INV-202611-010', date: '2026-11-10', customer: 'Kevin Jonathan', cashier: 'Sinta Maharani', method: 'QRIS', discount: 50000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-024', qty: 1 },
+            { sku: 'GVH-023', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-011', date: '2026-11-11', customer: 'Arief Budiman', cashier: 'Dimas Saputra', method: 'Cash', discount: 0, status: 'Selesai',
+          items: [
+            { sku: 'GVH-015', qty: 2 },
+            { sku: 'GVH-016', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-012', date: '2026-11-12', customer: 'Melisa Anggraini', cashier: 'Sinta Maharani', method: 'Transfer', discount: 190000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-005', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-013', date: '2026-11-12', customer: 'Studio Desain Kreatif Jambi', cashier: 'Reza Fauzan', method: 'Transfer', discount: 300000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-007', qty: 1 },
+            { sku: 'GVH-013', qty: 1 },
+            { sku: 'GVH-014', qty: 1 },
+            { sku: 'GVH-022', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-014', date: '2026-11-13', customer: 'Deni Saputra', cashier: 'Dimas Saputra', method: 'QRIS', discount: 0, status: 'Selesai',
+          items: [
+            { sku: 'GVH-025', qty: 1 },
+            { sku: 'GVH-026', qty: 2 }
+          ]
+        },
+        {
+          id: 'INV-202611-015', date: '2026-11-14', customer: 'Taufik Hidayat', cashier: 'Andika Pratama', method: 'Transfer', discount: 200000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-001', qty: 1 },
+            { sku: 'GVH-024', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-016', date: '2026-11-14', customer: 'Rendi Pratama (Batal Order)', cashier: 'Dimas Saputra', method: 'Cash', discount: 0, status: 'Dibatalkan',
+          items: [
+            { sku: 'GVH-017', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-017', date: '2026-11-15', customer: 'SMA Negeri 3 Jambi (Lab TIK)', cashier: 'Andika Pratama', method: 'Transfer', discount: 350000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-012', qty: 6 },
+            { sku: 'GVH-015', qty: 5 }
+          ]
+        },
+        {
+          id: 'INV-202611-018', date: '2026-11-15', customer: 'Gilang Ramadhan', cashier: 'Reza Fauzan', method: 'Transfer', discount: 250000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-008', qty: 1 },
+            { sku: 'GVH-017', qty: 1 },
+            { sku: 'GVH-019', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-019', date: '2026-11-16', customer: 'Putri Wulandari', cashier: 'Sinta Maharani', method: 'QRIS', discount: 150000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-004', qty: 1 },
+            { sku: 'GVH-023', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-020', date: '2026-11-16', customer: 'Hendra Kusuma', cashier: 'Reza Fauzan', method: 'Cash', discount: 100000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-016', qty: 2 },
+            { sku: 'GVH-020', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-021', date: '2026-11-17', customer: 'Klinik Medika Sehat', cashier: 'Andika Pratama', method: 'Transfer', discount: 200000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-003', qty: 1 },
+            { sku: 'GVH-025', qty: 1 }
+          ]
+        },
+        {
+          id: 'INV-202611-022', date: '2026-11-17', customer: 'Yoga Pratama', cashier: 'Sinta Maharani', method: 'QRIS', discount: 100000, status: 'Selesai',
+          items: [
+            { sku: 'GVH-022', qty: 1 },
+            { sku: 'GVH-024', qty: 1 }
+          ]
+        }
+      ];
+
+      // Enrich sales items with exact product details so every number is 100% consistent
+      const productMap = Object.fromEntries(products.map(p => [p.sku, p]));
+      const sales = rawSales.map(sale => {
+        const detailedItems = sale.items.map(it => {
+          const prod = productMap[it.sku];
+          return {
+            sku: it.sku,
+            name: prod.name,
+            qty: it.qty,
+            unitPrice: prod.sellPrice,
+            costPrice: prod.costPrice
+          };
+        });
+        const subtotal = detailedItems.reduce((s, i) => s + (i.qty * i.unitPrice), 0);
+        const totalCost = detailedItems.reduce((s, i) => s + (i.qty * i.costPrice), 0);
+        const totalPay = Math.max(0, subtotal - (sale.discount || 0));
+        const profit = sale.status === 'Dibatalkan' ? 0 : (totalPay - totalCost);
+        return {
+          ...sale,
+          items: detailedItems,
+          subtotal,
+          totalCost: sale.status === 'Dibatalkan' ? 0 : totalCost,
+          totalPay,
+          profit
+        };
+      });
+
+      // 11 Realistic Operational Expenses in November 2026
+      const expenses = [
+        { id: 'EXP-202611-001', date: '2026-11-01', category: 'Sewa Toko', description: 'Sewa Ruko 2 Lantai GVH STORE (Bulan November 2026)', amount: 6500000, method: 'Transfer' },
+        { id: 'EXP-202611-002', date: '2026-11-03', category: 'Internet', description: 'Tagihan Internet Biznet Dedicated 300 Mbps + IP Public', amount: 1150000, method: 'Transfer' },
+        { id: 'EXP-202611-003', date: '2026-11-05', category: 'Listrik', description: 'Token & Tagihan Listrik PLN Daya 7700VA (Display & AC Toko)', amount: 2450000, method: 'Transfer' },
+        { id: 'EXP-202611-004', date: '2026-11-06', category: 'Perawatan', description: 'Servis Rutin 3 Unit AC Toko & Pasta Thermal Area Rakitan', amount: 650000, method: 'Cash' },
+        { id: 'EXP-202611-005', date: '2026-11-08', category: 'Transportasi', description: 'Ongkir Kargo Ekspedisi & Kurir Lokal Pengantaran PC Rakitan', amount: 580000, method: 'Cash' },
+        { id: 'EXP-202611-006', date: '2026-11-10', category: 'Lainnya', description: 'Pembelian Kertas Thermal Struk, Lakban Fragile & Bubble Wrap', amount: 420000, method: 'QRIS' },
+        { id: 'EXP-202611-007', date: '2026-11-12', category: 'Gaji Karyawan', description: 'Gaji & Tunjangan Andika Pratama (Kepala Toko)', amount: 4800000, method: 'Transfer' },
+        { id: 'EXP-202611-008', date: '2026-11-12', category: 'Gaji Karyawan', description: 'Gaji & Komisi Sinta Maharani (Sales & Kasir)', amount: 3800000, method: 'Transfer' },
+        { id: 'EXP-202611-009', date: '2026-11-12', category: 'Gaji Karyawan', description: 'Gaji & Tunjangan Reza Fauzan (Teknisi Rakitan & Sales)', amount: 4200000, method: 'Transfer' },
+        { id: 'EXP-202611-010', date: '2026-11-12', category: 'Gaji Karyawan', description: 'Gaji Dimas Saputra (Admin Gudang & Kasir)', amount: 3500000, method: 'Transfer' },
+        { id: 'EXP-202611-011', date: '2026-11-15', category: 'Transportasi', description: 'BBM Operasional Kendaraan Antar Barang & Kunjungan Klien', amount: 490000, method: 'Cash' }
+      ];
+
+      // Build coherent Stock History Log matching POs and Sales
+      const stockLogs = [];
+      purchases.forEach(po => {
+        po.items.forEach(it => {
+          stockLogs.push({
+            id: `LOG-${po.id}-${it.sku}`,
+            date: po.date,
+            sku: it.sku,
+            productName: it.name,
+            type: 'Masuk (Pembelian)',
+            qtyChange: +it.qty,
+            ref: po.id,
+            note: `Pembelian dari ${po.supplier}`
+          });
+        });
+      });
+
+      sales.forEach(sale => {
+        sale.items.forEach(it => {
+          stockLogs.push({
+            id: `LOG-${sale.id}-${it.sku}`,
+            date: sale.date,
+            sku: it.sku,
+            productName: it.name,
+            type: 'Keluar (Penjualan)',
+            qtyChange: -it.qty,
+            ref: sale.id,
+            note: `Penjualan ke ${sale.customer}`
+          });
+          if (sale.status === 'Dibatalkan') {
+            stockLogs.push({
+              id: `LOG-RET-${sale.id}-${it.sku}`,
+              date: sale.date,
+              sku: it.sku,
+              productName: it.name,
+              type: 'Retur (Batal Jual)',
+              qtyChange: +it.qty,
+              ref: sale.id,
+              note: `Pembatalan transaksi ${sale.id}`
+            });
+          }
+        });
+      });
+
+      stockLogs.sort((a, b) => b.date.localeCompare(a.date));
+
+      return {
+        settings,
+        products,
+        sales,
+        purchases,
+        employees,
+        suppliers,
+        expenses,
+        stockLogs
+      };
+    }
+
+    // =========================================================================
+    // 3. STATE MANAGEMENT & PERSISTENCE ENGINE
+    // =========================================================================
+    let appState = null;
+    let currentRoute = 'dashboard';
+    let activeCharts = {};
+
+    function loadAppState() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && Array.isArray(parsed.products)) {
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.warn('Gagal membaca localStorage, memuat data simulasi default.', e);
+      }
+      const initial = generateInitialSimulationState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
+      return initial;
+    }
+
+    function saveAppState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        if (typeof window.__fbSyncSave === 'function') {
+          window.__fbSyncSave(appState);
+        }
+      } catch (e) {
+        console.error('Gagal menyimpan state:', e);
+      }
+    }
+
+    window.getAppState = () => appState;
+    window.hydrateFromCloud = (cloudState) => {
+      appState = cloudState;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      updateHeaderBadges();
+      renderCurrentPage();
+      showToast('Data berhasil disinkronkan dari Cloud Database!', 'info');
+    };
+
+    appState = loadAppState();
+
+    // =========================================================================
+    // 4. CENTRALIZED FINANCIAL & INVENTORY CALCULATOR (SINGLE SOURCE OF TRUTH)
+    // =========================================================================
+    function computeMetrics() {
+      const completedSales = appState.sales.filter(s => s.status === 'Selesai');
+
+      // Revenue, COGS (HPP), Gross Profit
+      const totalRevenue = completedSales.reduce((sum, s) => sum + (Number(s.totalPay) || 0), 0);
+      const totalCOGS = completedSales.reduce((sum, s) => sum + (Number(s.totalCost) || 0), 0);
+      const grossProfit = totalRevenue - totalCOGS;
+
+      // Operational Expenses
+      const totalExpenses = appState.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+      // Net Profit
+      const netProfit = grossProfit - totalExpenses;
+      const netMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : '0.0';
+
+      // Purchases
+      const totalPurchases = appState.purchases.reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+      const paidPurchases = appState.purchases
+        .filter(p => p.status === 'Lunas')
+        .reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+      const unpaidPurchases = totalPurchases - paidPurchases;
+
+      // Inventory Valuation & Stock Alerts
+      const totalInventoryValue = appState.products.reduce((sum, p) => sum + ((Number(p.stock) || 0) * (Number(p.costPrice) || 0)), 0);
+      const totalRetailValue = appState.products.reduce((sum, p) => sum + ((Number(p.stock) || 0) * (Number(p.sellPrice) || 0)), 0);
+      const totalStockUnits = appState.products.reduce((sum, p) => sum + (Number(p.stock) || 0), 0);
+      const lowStockProducts = appState.products.filter(p => Number(p.stock) <= Number(p.minStock));
+
+      // Stock Movement Totals
+      const totalUnitsIn = appState.stockLogs
+        .filter(l => l.qtyChange > 0)
+        .reduce((sum, l) => sum + l.qtyChange, 0);
+      const totalUnitsOut = appState.stockLogs
+        .filter(l => l.qtyChange < 0)
+        .reduce((sum, l) => sum + Math.abs(l.qtyChange), 0);
+
+      // Cash Flow
+      const openingCash = Number(appState.settings.openingCash) || 0;
+      const cashIn = totalRevenue;
+      const cashOut = paidPurchases + totalExpenses;
+      const closingCash = openingCash + cashIn - cashOut;
+
+      // Employee Leaderboard Stats
+      const employeeStats = appState.employees.map(emp => {
+        const empSales = completedSales.filter(s => s.cashier === emp.name);
+        const omzet = empSales.reduce((sum, s) => sum + s.totalPay, 0);
+        const profit = empSales.reduce((sum, s) => sum + s.profit, 0);
+        return {
+          ...emp,
+          txCount: empSales.length,
+          omzet,
+          profit
+        };
+      }).sort((a, b) => b.omzet - a.omzet);
+
+      // Supplier Totals
+      const supplierStats = appState.suppliers.map(sup => {
+        const supPOs = appState.purchases.filter(p => p.supplier === sup.name);
+        const totalBought = supPOs.reduce((sum, p) => sum + p.total, 0);
+        return {
+          ...sup,
+          poCount: supPOs.length,
+          totalBought
+        };
+      });
+
+      return {
+        completedSales,
+        totalRevenue,
+        totalCOGS,
+        grossProfit,
+        totalExpenses,
+        netProfit,
+        netMargin,
+        totalPurchases,
+        paidPurchases,
+        unpaidPurchases,
+        totalInventoryValue,
+        totalRetailValue,
+        totalStockUnits,
+        lowStockProducts,
+        totalUnitsIn,
+        totalUnitsOut,
+        openingCash,
+        cashIn,
+        cashOut,
+        closingCash,
+        employeeStats,
+        supplierStats
+      };
+    }
+
+    // =========================================================================
+    // 5. NAVIGATION & SIDEBAR RENDERING
+    // =========================================================================
+    const NAV_ITEMS = [
+      { id: 'dashboard', label: 'Dashboard', subtitle: 'Ringkasan performa keuangan, penjualan & stok real-time', icon: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>' },
+      { id: 'produk', label: 'Data Produk', subtitle: 'Katalog produk komputer, harga modal, harga jual & nilai persediaan', icon: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>' },
+      { id: 'stok', label: 'Stok Barang', subtitle: 'Monitoring batas stok minimum, koreksi stok & riwayat mutasi', icon: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/>' },
+      { id: 'penjualan', label: 'Penjualan', subtitle: 'Kasir POS, riwayat transaksi, laba per nota & cetak struk', icon: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>' },
+      { id: 'pembelian', label: 'Pembelian', subtitle: 'Restock barang dari supplier, status pelunasan & bukti PO', icon: '<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>' },
+      { id: 'penjual', label: 'Data Penjual', subtitle: 'Manajemen karyawan & peringkat performa omzet penjualan', icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+      { id: 'supplier', label: 'Supplier', subtitle: 'Database distributor resmi & akumulasi pembelian barang', icon: '<rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>' },
+      { id: 'pengeluaran', label: 'Pengeluaran', subtitle: 'Pencatatan biaya operasional toko (sewa, gaji, listrik, internet)', icon: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>' },
+      { id: 'laporan', label: 'Laporan Keuangan', subtitle: 'Laba Rugi, Arus Kas, Persediaan, Rekap & Ekspor PDF / Excel', icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
+      { id: 'pengaturan', label: 'Pengaturan', subtitle: 'Profil toko, saldo awal kas, backup data & kontrol data simulasi', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' }
+    ];
+
+    function renderSidebar() {
+      const nav = document.getElementById('sidebar-nav');
+      const m = computeMetrics();
+      nav.innerHTML = NAV_ITEMS.map(item => {
+        const active = item.id === currentRoute;
+        const badge = (item.id === 'stok' && m.lowStockProducts.length > 0)
+          ? `<span class="ml-auto px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">${m.lowStockProducts.length}</span>`
+          : '';
+        return `
+          <button onclick="navigateTo('${item.id}')"
+            class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${active ? 'nav-item-active shadow-md' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'}">
+            <svg class="w-4 h-4 shrink-0 ${active ? 'text-blue-400' : 'text-slate-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              ${item.icon}
+            </svg>
+            <span class="truncate">${item.label}</span>
+            ${badge}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function toggleMobileSidebar(open) {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (open) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    function updateHeaderBadges() {
+      const simBadge = document.getElementById('simulation-badge');
+      const periodLabel = document.getElementById('header-period-label');
+      if (periodLabel) periodLabel.textContent = `Periode: ${appState.settings.periodLabel}`;
+      if (simBadge) {
+        if (appState.settings.isSimulation) {
+          simBadge.textContent = `DATA SIMULASI - ${appState.settings.periodLabel.toUpperCase()}`;
+          simBadge.className = 'px-2.5 py-0.5 text-[11px] font-bold tracking-wider uppercase rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40';
+        } else {
+          simBadge.textContent = 'DATA OPERASIONAL AKTIF';
+          simBadge.className = 'px-2.5 py-0.5 text-[11px] font-bold tracking-wider uppercase rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+        }
+      }
+    }
+
+    function navigateTo(route) {
+      currentRoute = route;
+      toggleMobileSidebar(false);
+      const navObj = NAV_ITEMS.find(n => n.id === route) || NAV_ITEMS[0];
+      document.getElementById('page-title').textContent = navObj.label;
+      document.getElementById('page-subtitle').textContent = navObj.subtitle;
+      renderSidebar();
+      renderCurrentPage();
+    }
+
+    function destroyCharts() {
+      Object.values(activeCharts).forEach(chart => {
+        if (chart && typeof chart.destroy === 'function') chart.destroy();
+      });
+      activeCharts = {};
+    }
+
+    function renderCurrentPage() {
+      destroyCharts();
+      renderSidebar();
+      updateHeaderBadges();
+      const container = document.getElementById('app-content');
+
+      switch (currentRoute) {
+        case 'dashboard': renderDashboardPage(container); break;
+        case 'produk': renderProductsPage(container); break;
+        case 'stok': renderStockPage(container); break;
+        case 'penjualan': renderSalesPage(container); break;
+        case 'pembelian': renderPurchasesPage(container); break;
+        case 'penjual': renderEmployeesPage(container); break;
+        case 'supplier': renderSuppliersPage(container); break;
+        case 'pengeluaran': renderExpensesPage(container); break;
+        case 'laporan': renderReportsPage(container); break;
+        case 'pengaturan': renderSettingsPage(container); break;
+        default: renderDashboardPage(container);
+      }
+    }
+
+    // =========================================================================
+    // 6. PAGE 1: DASHBOARD
+    // =========================================================================
+    function renderDashboardPage(container) {
+      const m = computeMetrics();
+      const recentSales = [...appState.sales].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, 6);
+
+      container.innerHTML = `
+        <!-- 8 KPI METRIC CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <!-- 1. Total Omzet -->
+          <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Omzet Bulan Ini</span>
+              <span class="p-2 rounded-xl bg-blue-500/15 text-blue-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </span>
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold text-white font-mono">${formatIDR(m.totalRevenue)}</div>
+            <p class="text-xs text-blue-400 mt-1.5 font-medium">Laba Kotor: ${formatIDR(m.grossProfit)}</p>
+          </div>
+
+          <!-- 2. Keuntungan Bersih -->
+          <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Keuntungan Bersih</span>
+              <span class="p-2 rounded-xl bg-emerald-500/15 text-emerald-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </span>
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold ${m.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'} font-mono">${formatIDR(m.netProfit)}</div>
+            <p class="text-xs text-slate-400 mt-1.5">Net Profit Margin: <strong class="text-emerald-300">${m.netMargin}%</strong></p>
+          </div>
+
+          <!-- 3. Total Modal Pembelian -->
+          <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Modal Pembelian</span>
+              <span class="p-2 rounded-xl bg-purple-500/15 text-purple-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+              </span>
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold text-white font-mono">${formatIDR(m.totalPurchases)}</div>
+            <p class="text-xs text-purple-300 mt-1.5">Lunas: ${formatIDR(m.paidPurchases)}</p>
+          </div>
+
+          <!-- 4. Pengeluaran Operasional -->
+          <div class="glass-card glass-card-hover rounded-2xl p-5 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Pengeluaran Operasional</span>
+              <span class="p-2 rounded-xl bg-rose-500/15 text-rose-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </span>
+            </div>
+            <div class="text-xl sm:text-2xl font-extrabold text-rose-400 font-mono">${formatIDR(m.totalExpenses)}</div>
+            <p class="text-xs text-slate-400 mt-1.5">${appState.expenses.length} pos biaya operasional tercatat</p>
+          </div>
+
+          <!-- 5. Jumlah Transaksi Penjualan -->
+          <div class="glass-card glass-card-hover rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-400 font-medium">Transaksi Penjualan</p>
+              <p class="text-2xl font-extrabold text-white mt-1">${m.completedSales.length} <span class="text-xs font-normal text-slate-400">Nota Selesai</span></p>
+            </div>
+            <button onclick="navigateTo('penjualan')" class="px-3 py-1.5 rounded-lg bg-blue-500/15 text-blue-400 text-xs font-semibold hover:bg-blue-500/25">Detail →</button>
+          </div>
+
+          <!-- 6. Jumlah Transaksi Pembelian -->
+          <div class="glass-card glass-card-hover rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-400 font-medium">Transaksi Pembelian</p>
+              <p class="text-2xl font-extrabold text-white mt-1">${appState.purchases.length} <span class="text-xs font-normal text-slate-400">Faktur PO</span></p>
+            </div>
+            <button onclick="navigateTo('pembelian')" class="px-3 py-1.5 rounded-lg bg-purple-500/15 text-purple-400 text-xs font-semibold hover:bg-purple-500/25">Detail →</button>
+          </div>
+
+          <!-- 7. Total Produk dalam Stok -->
+          <div class="glass-card glass-card-hover rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-400 font-medium">Total Produk Dalam Stok</p>
+              <p class="text-2xl font-extrabold text-cyan-400 mt-1">${formatNumber(m.totalStockUnits)} <span class="text-xs font-normal text-slate-400">Unit (${appState.products.length} SKU)</span></p>
+            </div>
+            <button onclick="navigateTo('produk')" class="px-3 py-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 text-xs font-semibold hover:bg-cyan-500/25">Katalog →</button>
+          </div>
+
+          <!-- 8. Produk Stok Hampir Habis -->
+          <div class="glass-card glass-card-hover rounded-2xl p-4 flex items-center justify-between border ${m.lowStockProducts.length > 0 ? 'border-amber-500/40' : ''}">
+            <div>
+              <p class="text-xs text-slate-400 font-medium">Stok Hampir Habis</p>
+              <p class="text-2xl font-extrabold ${m.lowStockProducts.length > 0 ? 'text-amber-400' : 'text-emerald-400'} mt-1">${m.lowStockProducts.length} <span class="text-xs font-normal text-slate-400">Produk Alert</span></p>
+            </div>
+            <button onclick="navigateTo('stok')" class="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-400 text-xs font-semibold hover:bg-amber-500/25">Restock →</button>
+          </div>
+        </div>
+
+        <!-- CHARTS ROW 1: DAILY SALES & INCOME VS EXPENSE -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-white">Grafik Penjualan Harian (November 2026)</h3>
+                <p class="text-xs text-slate-400">Pergerakan omzet penjualan bersih per tanggal transaksi</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 text-xs font-semibold">Real-Time</span>
+            </div>
+            <div class="h-72 w-full">
+              <canvas id="chartDailySales"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5">
+            <div class="mb-4">
+              <h3 class="text-base font-bold text-white">Pemasukan vs Pengeluaran</h3>
+              <p class="text-xs text-slate-400">Proporsi Omzet, HPP, dan Biaya Operasional</p>
+            </div>
+            <div class="h-72 w-full flex items-center justify-center">
+              <canvas id="chartIncomeExpense"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHARTS ROW 2: MONTHLY PROFIT TREND + LOW STOCK ALERT -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-bold text-white">Grafik Keuntungan Bulanan (Jul – Nov 2026)</h3>
+                <p class="text-xs text-slate-400">Perbandingan Laba Kotor & Laba Bersih (Nov 2026 terhubung live)</p>
+              </div>
+              <span class="text-xs text-purple-400 font-semibold">Tren Profitabilitas</span>
+            </div>
+            <div class="h-64 w-full">
+              <canvas id="chartMonthlyProfit"></canvas>
+            </div>
+          </div>
+
+          <!-- Low Stock Alert Widget -->
+          <div class="glass-card rounded-2xl p-5 flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                Peringatan Stok Menipis
+              </h3>
+              <span class="text-xs text-amber-400 font-semibold">${m.lowStockProducts.length} SKU</span>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-2.5 max-h-60 pr-1">
+              ${m.lowStockProducts.length === 0 ? `
+                <div class="text-center py-8 text-slate-400 text-xs">Semua stok produk berada di atas batas minimum.</div>
+              ` : m.lowStockProducts.map(p => `
+                <div class="p-3 rounded-xl bg-[#0E1018] border border-amber-500/30 flex items-center justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="text-xs font-bold text-white truncate">${escapeHTML(p.name)}</p>
+                    <p class="text-[11px] text-slate-400 font-mono">${p.sku} • Min: ${p.minStock} unit</p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-xs font-bold">Sisa ${p.stock}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT TRANSACTIONS TABLE -->
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Aktivitas Transaksi Penjualan Terbaru</h3>
+              <p class="text-xs text-slate-400">6 nota penjualan terakhir yang tercatat di sistem kasir</p>
+            </div>
+            <button onclick="navigateTo('penjualan')" class="text-xs font-semibold text-blue-400 hover:text-blue-300">Lihat Semua Penjualan →</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">ID Transaksi</th>
+                  <th class="py-3 px-3">Tanggal</th>
+                  <th class="py-3 px-3">Pelanggan</th>
+                  <th class="py-3 px-3">Kasir</th>
+                  <th class="py-3 px-3">Metode</th>
+                  <th class="py-3 px-3 text-right">Total Bayar</th>
+                  <th class="py-3 px-3 text-right">Keuntungan</th>
+                  <th class="py-3 px-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${recentSales.map(s => `
+                  <tr class="hover:bg-slate-800/30 transition-colors">
+                    <td class="py-3 px-3 font-mono font-semibold text-blue-400">${s.id}</td>
+                    <td class="py-3 px-3 text-slate-300">${formatDateID(s.date)}</td>
+                    <td class="py-3 px-3 font-medium text-white">${escapeHTML(s.customer)}</td>
+                    <td class="py-3 px-3 text-slate-400">${escapeHTML(s.cashier)}</td>
+                    <td class="py-3 px-3"><span class="px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 text-xs">${s.method}</span></td>
+                    <td class="py-3 px-3 text-right font-mono font-semibold text-white">${formatIDR(s.totalPay)}</td>
+                    <td class="py-3 px-3 text-right font-mono text-emerald-400">${formatIDR(s.profit)}</td>
+                    <td class="py-3 px-3 text-center">
+                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${s.status === 'Selesai' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}">
+                        ${s.status}
+                      </span>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      renderDashboardCharts(m);
+    }
+
+    function renderDashboardCharts(m) {
+      // Group daily sales
+      const dailyMap = {};
+      m.completedSales.forEach(s => {
+        dailyMap[s.date] = (dailyMap[s.date] || 0) + s.totalPay;
+      });
+      const sortedDates = Object.keys(dailyMap).sort();
+      const dailyLabels = sortedDates.map(d => d.slice(8) + ' Nov');
+      const dailyValues = sortedDates.map(d => dailyMap[d]);
+
+      const ctxDaily = document.getElementById('chartDailySales');
+      if (ctxDaily) {
+        activeCharts.daily = new Chart(ctxDaily, {
+          type: 'line',
+          data: {
+            labels: dailyLabels,
+            datasets: [{
+              label: 'Omzet Harian (IDR)',
+              data: dailyValues,
+              borderColor: '#3B82F6',
+              backgroundColor: 'rgba(59, 130, 246, 0.16)',
+              borderWidth: 2.5,
+              pointBackgroundColor: '#8B5CF6',
+              pointBorderColor: '#fff',
+              pointRadius: 4,
+              fill: true,
+              tension: 0.35
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => 'Omzet: ' + formatIDR(ctx.raw)
+                }
+              }
+            },
+            scales: {
+              x: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+              y: {
+                grid: { color: 'rgba(148,163,184,0.08)' },
+                ticks: {
+                  color: '#94A3B8',
+                  font: { size: 11 },
+                  callback: (val) => 'Rp ' + (val / 1000000).toFixed(0) + ' Jt'
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Doughnut Income vs Expense
+      const ctxDonut = document.getElementById('chartIncomeExpense');
+      if (ctxDonut) {
+        activeCharts.donut = new Chart(ctxDonut, {
+          type: 'doughnut',
+          data: {
+            labels: ['HPP (Modal Terjual)', 'Biaya Operasional', 'Laba Bersih'],
+            datasets: [{
+              data: [m.totalCOGS, m.totalExpenses, Math.max(0, m.netProfit)],
+              backgroundColor: ['#3B82F6', '#F43F5E', '#10B981'],
+              borderColor: '#12141E',
+              borderWidth: 3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { color: '#CBD5E1', font: { size: 11 }, padding: 14 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.label}: ${formatIDR(ctx.raw)}`
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Monthly Profit Bar Chart (Historical Jul-Oct + Live Nov 2026)
+      const ctxProfit = document.getElementById('chartMonthlyProfit');
+      if (ctxProfit) {
+        activeCharts.profit = new Chart(ctxProfit, {
+          type: 'bar',
+          data: {
+            labels: ['Jul 2026', 'Agu 2026', 'Sep 2026', 'Okt 2026', 'Nov 2026 (Live)'],
+            datasets: [
+              {
+                label: 'Laba Kotor',
+                data: [24500000, 27800000, 26100000, 31400000, m.grossProfit],
+                backgroundColor: 'rgba(59, 130, 246, 0.75)',
+                borderRadius: 6
+              },
+              {
+                label: 'Laba Bersih',
+                data: [7200000, 9900000, 8400000, 12800000, m.netProfit],
+                backgroundColor: 'rgba(139, 92, 246, 0.85)',
+                borderRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: '#CBD5E1', font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => `${ctx.dataset.label}: ${formatIDR(ctx.raw)}`
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+              y: {
+                grid: { color: 'rgba(148,163,184,0.08)' },
+                ticks: {
+                  color: '#94A3B8',
+                  font: { size: 11 },
+                  callback: (val) => 'Rp ' + (val / 1000000).toFixed(0) + ' Jt'
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // =========================================================================
+    // 7. PAGE 2: DATA PRODUK (INVENTORY CATALOG)
+    // =========================================================================
+    let productFilterSearch = '';
+    let productFilterCategory = 'Semua';
+
+    function renderProductsPage(container) {
+      const categories = ['Semua', ...new Set(appState.products.map(p => p.category))];
+      const filtered = appState.products.filter(p => {
+        const matchCat = productFilterCategory === 'Semua' || p.category === productFilterCategory;
+        const q = productFilterSearch.toLowerCase();
+        const matchSearch = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
+        return matchCat && matchSearch;
+      });
+
+      const totalVal = filtered.reduce((s, p) => s + (p.stock * p.costPrice), 0);
+
+      container.innerHTML = `
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-3 flex-1">
+              <div class="relative flex-1 min-w-[220px] max-w-md">
+                <input type="text" value="${escapeHTML(productFilterSearch)}" oninput="productFilterSearch=this.value; renderCurrentPage();"
+                  placeholder="Cari SKU, nama produk, atau merek..."
+                  class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500" />
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+              <select onchange="productFilterCategory=this.value; renderCurrentPage();"
+                class="bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-500">
+                ${categories.map(c => `<option value="${escapeHTML(c)}" ${c === productFilterCategory ? 'selected' : ''}>Kategori: ${escapeHTML(c)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="text-right hidden sm:block">
+                <p class="text-[11px] text-slate-400">Nilai Persediaan Tampil</p>
+                <p class="text-sm font-bold text-blue-400 font-mono">${formatIDR(totalVal)}</p>
+              </div>
+              <button onclick="openProductModal()" class="gradient-btn text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                <span>Tambah Produk</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">SKU</th>
+                  <th class="py-3 px-3">Nama Produk</th>
+                  <th class="py-3 px-3">Kategori / Merek</th>
+                  <th class="py-3 px-3 text-right">Harga Modal</th>
+                  <th class="py-3 px-3 text-right">Harga Jual</th>
+                  <th class="py-3 px-3 text-center">Stok</th>
+                  <th class="py-3 px-3 text-right">Nilai Persediaan</th>
+                  <th class="py-3 px-3">Supplier</th>
+                  <th class="py-3 px-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${filtered.map(p => {
+                  const invVal = p.stock * p.costPrice;
+                  const low = p.stock <= p.minStock;
+                  return `
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                      <td class="py-3 px-3 font-mono font-bold text-blue-400 whitespace-nowrap">${escapeHTML(p.sku)}</td>
+                      <td class="py-3 px-3 font-medium text-white min-w-[220px]">${escapeHTML(p.name)}</td>
+                      <td class="py-3 px-3 whitespace-nowrap">
+                        <span class="px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 text-xs">${escapeHTML(p.category)}</span>
+                        <span class="text-xs text-slate-400 ml-1">${escapeHTML(p.brand)}</span>
+                      </td>
+                      <td class="py-3 px-3 text-right font-mono text-slate-300 whitespace-nowrap">${formatIDR(p.costPrice)}</td>
+                      <td class="py-3 px-3 text-right font-mono font-semibold text-emerald-400 whitespace-nowrap">${formatIDR(p.sellPrice)}</td>
+                      <td class="py-3 px-3 text-center whitespace-nowrap">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${low ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-slate-800 text-white'}">
+                          ${p.stock} <span class="text-[10px] font-normal text-slate-400">/ min ${p.minStock}</span>
+                        </span>
+                      </td>
+                      <td class="py-3 px-3 text-right font-mono text-cyan-300 whitespace-nowrap">${formatIDR(invVal)}</td>
+                      <td class="py-3 px-3 text-xs text-slate-400 whitespace-nowrap">${escapeHTML(p.supplier)}</td>
+                      <td class="py-3 px-3 text-center whitespace-nowrap">
+                        <div class="inline-flex items-center gap-1.5">
+                          <button onclick="openProductModal('${p.sku}')" class="p-1.5 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/30" title="Edit Produk">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button onclick="confirmDeleteProduct('${p.sku}')" class="p-1.5 rounded-lg bg-rose-500/15 text-rose-400 hover:bg-rose-500/30" title="Hapus Produk">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openProductModal(editSku = null) {
+      const prod = editSku ? appState.products.find(p => p.sku === editSku) : null;
+      const nextNum = String(appState.products.length + 1).padStart(3, '0');
+      const supplierOptions = appState.suppliers.map(s => `<option value="${escapeHTML(s.name)}" ${prod && prod.supplier === s.name ? 'selected' : ''}>${escapeHTML(s.name)}</option>`).join('');
+
+      openModal(prod ? `Edit Produk (${prod.sku})` : 'Tambah Produk Komputer Baru', `
+        <form onsubmit="saveProductForm(event, '${editSku || ''}')" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Kode SKU *</label>
+              <input type="text" name="sku" required value="${prod ? escapeHTML(prod.sku) : 'GVH-' + nextNum}" ${prod ? 'readonly' : ''}
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono ${prod ? 'opacity-60' : ''}" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Kategori *</label>
+              <select name="category" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                ${['Laptop', 'Processor', 'Motherboard', 'RAM', 'Storage', 'VGA Card', 'Power Supply', 'Casing PC', 'Monitor', 'Aksesoris', 'Jaringan'].map(cat =>
+                  `<option value="${cat}" ${prod && prod.category === cat ? 'selected' : ''}>${cat}</option>`
+                ).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Merek *</label>
+              <input type="text" name="brand" required value="${prod ? escapeHTML(prod.brand) : ''}" placeholder="Contoh: ASUS, Intel, Corsair"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Lengkap Produk *</label>
+            <input type="text" name="name" required value="${prod ? escapeHTML(prod.name) : ''}" placeholder="Contoh: ASUS TUF Gaming F15 FX507..."
+              class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Harga Modal (IDR) *</label>
+              <input type="number" name="costPrice" required min="0" value="${prod ? prod.costPrice : ''}"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Harga Jual (IDR) *</label>
+              <input type="number" name="sellPrice" required min="0" value="${prod ? prod.sellPrice : ''}"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Stok Saat Ini *</label>
+              <input type="number" name="stock" required min="0" value="${prod ? prod.stock : 5}"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Stok Minimum *</label>
+              <input type="number" name="minStock" required min="0" value="${prod ? prod.minStock : 3}"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Supplier Utama *</label>
+              <select name="supplier" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                ${supplierOptions}
+              </select>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm font-medium hover:bg-slate-700">Batal</button>
+            <button type="submit" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold">Simpan Produk</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function saveProductForm(e, editSku) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const sku = fd.get('sku').trim().toUpperCase();
+      const newObj = {
+        sku,
+        name: fd.get('name').trim(),
+        category: fd.get('category'),
+        brand: fd.get('brand').trim(),
+        costPrice: Number(fd.get('costPrice')) || 0,
+        sellPrice: Number(fd.get('sellPrice')) || 0,
+        stock: Number(fd.get('stock')) || 0,
+        minStock: Number(fd.get('minStock')) || 0,
+        supplier: fd.get('supplier')
+      };
+
+      if (editSku) {
+        const idx = appState.products.findIndex(p => p.sku === editSku);
+        if (idx !== -1) {
+          const oldStock = appState.products[idx].stock;
+          appState.products[idx] = newObj;
+          if (oldStock !== newObj.stock) {
+            appState.stockLogs.unshift({
+              id: 'LOG-' + Date.now(),
+              date: '2026-11-17',
+              sku: newObj.sku,
+              productName: newObj.name,
+              type: 'Koreksi Manual',
+              qtyChange: newObj.stock - oldStock,
+              ref: 'EDIT-PROD',
+              note: `Penyesuaian stok dari ${oldStock} ke ${newObj.stock}`
+            });
+          }
+          showToast(`Produk ${sku} berhasil diperbarui!`);
+        }
+      } else {
+        if (appState.products.some(p => p.sku === sku)) {
+          showToast(`Kode SKU ${sku} sudah digunakan!`, 'error');
+          return;
+        }
+        appState.products.push(newObj);
+        if (newObj.stock > 0) {
+          appState.stockLogs.unshift({
+            id: 'LOG-' + Date.now(),
+            date: '2026-11-17',
+            sku: newObj.sku,
+            productName: newObj.name,
+            type: 'Saldo Awal Baru',
+            qtyChange: newObj.stock,
+            ref: 'NEW-SKU',
+            note: 'Penambahan produk baru ke katalog'
+          });
+        }
+        showToast(`Produk baru ${newObj.name} ditambahkan!`);
+      }
+
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+    }
+
+    function confirmDeleteProduct(sku) {
+      const prod = appState.products.find(p => p.sku === sku);
+      if (!prod) return;
+      openModal('Konfirmasi Hapus Produk', `
+        <p class="text-sm text-slate-300 mb-4">Apakah Anda yakin ingin menghapus produk <strong class="text-white">${escapeHTML(prod.name)} (${prod.sku})</strong> dari katalog inventaris?</p>
+        <div class="flex justify-end gap-3">
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+          <button onclick="deleteProduct('${sku}')" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold">Ya, Hapus Produk</button>
+        </div>
+      `);
+    }
+
+    function deleteProduct(sku) {
+      appState.products = appState.products.filter(p => p.sku !== sku);
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+      showToast(`Produk ${sku} dihapus dari sistem.`, 'warning');
+    }
+
+    // =========================================================================
+    // 8. PAGE 3: STOK BARANG & RIWAYAT MUTASI
+    // =========================================================================
+    function renderStockPage(container) {
+      const m = computeMetrics();
+      container.innerHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="glass-card rounded-2xl p-5">
+            <p class="text-xs text-slate-400">Total Nilai Aset Persediaan (Modal)</p>
+            <p class="text-xl sm:text-2xl font-extrabold text-cyan-400 font-mono mt-1">${formatIDR(m.totalInventoryValue)}</p>
+            <p class="text-xs text-slate-500 mt-1">Potensi Nilai Jual: ${formatIDR(m.totalRetailValue)}</p>
+          </div>
+          <div class="glass-card rounded-2xl p-5">
+            <p class="text-xs text-slate-400">Total Mutasi Barang Masuk vs Keluar</p>
+            <div class="flex items-center gap-4 mt-1">
+              <span class="text-lg font-bold text-emerald-400">+${m.totalUnitsIn} Unit Masuk</span>
+              <span class="text-lg font-bold text-rose-400">-${m.totalUnitsOut} Unit Keluar</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">Stok Tersisa Saat Ini: ${m.totalStockUnits} Unit</p>
+          </div>
+          <div class="glass-card rounded-2xl p-5 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-400">Status Kritis Stok Minimum</p>
+              <p class="text-2xl font-extrabold text-amber-400 mt-1">${m.lowStockProducts.length} Produk</p>
+              <p class="text-xs text-slate-500 mt-1">Perlu segera dilakukan PO</p>
+            </div>
+            <button onclick="openStockAdjustModal()" class="gradient-btn text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl">
+              + Penyesuaian Stok
+            </button>
+          </div>
+        </div>
+
+        <!-- Stock Monitoring Table -->
+        <div class="glass-card rounded-2xl p-5">
+          <h3 class="text-base font-bold text-white mb-4">Monitoring Posisi Stok Produk</h3>
+          <div class="overflow-x-auto max-h-96">
+            <table class="w-full text-left border-collapse">
+              <thead class="sticky top-0 bg-[#141724]">
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">SKU</th>
+                  <th class="py-3 px-3">Nama Produk</th>
+                  <th class="py-3 px-3 text-center">Stok Tersedia</th>
+                  <th class="py-3 px-3 text-center">Stok Minimum</th>
+                  <th class="py-3 px-3 text-center">Status</th>
+                  <th class="py-3 px-3 text-right">Nilai Aset Modal</th>
+                  <th class="py-3 px-3 text-center">Aksi Cepat</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${[...appState.products].sort((a, b) => (a.stock - a.minStock) - (b.stock - b.minStock)).map(p => {
+                  const statusBadge = p.stock === 0
+                    ? '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-400">Habis</span>'
+                    : p.stock <= p.minStock
+                      ? '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300">Menipis</span>'
+                      : '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400">Aman</span>';
+                  return `
+                    <tr class="hover:bg-slate-800/30">
+                      <td class="py-2.5 px-3 font-mono text-blue-400 font-semibold">${p.sku}</td>
+                      <td class="py-2.5 px-3 text-white font-medium">${escapeHTML(p.name)}</td>
+                      <td class="py-2.5 px-3 text-center font-mono font-bold text-white">${p.stock}</td>
+                      <td class="py-2.5 px-3 text-center font-mono text-slate-400">${p.minStock}</td>
+                      <td class="py-2.5 px-3 text-center">${statusBadge}</td>
+                      <td class="py-2.5 px-3 text-right font-mono text-slate-300">${formatIDR(p.stock * p.costPrice)}</td>
+                      <td class="py-2.5 px-3 text-center">
+                        <button onclick="openStockAdjustModal('${p.sku}')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-blue-600 text-xs text-slate-200 hover:text-white transition-colors">
+                          Sesuaikan
+                        </button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Stock Movement History -->
+        <div class="glass-card rounded-2xl p-5">
+          <h3 class="text-base font-bold text-white mb-1">Riwayat Perubahan & Mutasi Stok</h3>
+          <p class="text-xs text-slate-400 mb-4">Log otomatis dari transaksi pembelian, penjualan, pembatalan nota, dan koreksi gudang</p>
+          <div class="overflow-x-auto max-h-96">
+            <table class="w-full text-left border-collapse">
+              <thead class="sticky top-0 bg-[#141724]">
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">Tanggal</th>
+                  <th class="py-3 px-3">SKU</th>
+                  <th class="py-3 px-3">Produk</th>
+                  <th class="py-3 px-3">Jenis Mutasi</th>
+                  <th class="py-3 px-3 text-center">Perubahan</th>
+                  <th class="py-3 px-3">Referensi</th>
+                  <th class="py-3 px-3">Keterangan</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${appState.stockLogs.slice(0, 60).map(log => `
+                  <tr class="hover:bg-slate-800/30">
+                    <td class="py-2.5 px-3 text-slate-300 whitespace-nowrap">${formatDateID(log.date)}</td>
+                    <td class="py-2.5 px-3 font-mono text-blue-400">${log.sku}</td>
+                    <td class="py-2.5 px-3 text-white font-medium">${escapeHTML(log.productName)}</td>
+                    <td class="py-2.5 px-3 text-xs text-slate-300">${escapeHTML(log.type)}</td>
+                    <td class="py-2.5 px-3 text-center font-mono font-bold ${log.qtyChange > 0 ? 'text-emerald-400' : 'text-rose-400'}">
+                      ${log.qtyChange > 0 ? '+' + log.qtyChange : log.qtyChange}
+                    </td>
+                    <td class="py-2.5 px-3 font-mono text-xs text-purple-300">${escapeHTML(log.ref)}</td>
+                    <td class="py-2.5 px-3 text-xs text-slate-400">${escapeHTML(log.note)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openStockAdjustModal(preselectSku = '') {
+      const options = appState.products.map(p =>
+        `<option value="${p.sku}" ${p.sku === preselectSku ? 'selected' : ''}>${p.sku} — ${escapeHTML(p.name)} (Stok: ${p.stock})</option>`
+      ).join('');
+
+      openModal('Penyesuaian / Koreksi Stok Gudang', `
+        <form onsubmit="submitStockAdjustment(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Pilih Produk *</label>
+            <select name="sku" required class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+              ${options}
+            </select>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Tanggal *</label>
+              <input type="date" name="date" required value="2026-11-17" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Jenis Koreksi *</label>
+              <select name="mode" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                <option value="add">Tambah Stok (+)</option>
+                <option value="sub">Kurangi Stok (-)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Jumlah Unit *</label>
+              <input type="number" name="qty" required min="1" value="1" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Catatan Alasan *</label>
+            <input type="text" name="note" required placeholder="Contoh: Hasil stock opname fisik rak display" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+          </div>
+          <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+            <button type="submit" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold">Simpan Penyesuaian</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function submitStockAdjustment(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const sku = fd.get('sku');
+      const mode = fd.get('mode');
+      const qty = Number(fd.get('qty')) || 0;
+      const date = fd.get('date');
+      const note = fd.get('note').trim();
+
+      const prod = appState.products.find(p => p.sku === sku);
+      if (!prod) return;
+
+      const delta = mode === 'add' ? qty : -qty;
+      if (prod.stock + delta < 0) {
+        showToast('Stok akhir tidak boleh kurang dari 0!', 'error');
+        return;
+      }
+
+      prod.stock += delta;
+      appState.stockLogs.unshift({
+        id: 'LOG-' + Date.now(),
+        date,
+        sku: prod.sku,
+        productName: prod.name,
+        type: mode === 'add' ? 'Koreksi Masuk' : 'Koreksi Keluar',
+        qtyChange: delta,
+        ref: 'OPNAME',
+        note
+      });
+
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+      showToast(`Stok ${prod.sku} berhasil diperbarui (${delta > 0 ? '+' + delta : delta} unit).`);
+    }
+
+    // =========================================================================
+    // 9. PAGE 4: MANAJEMEN PENJUALAN (POS & INVOICES)
+    // =========================================================================
+    let salesFilterDate = '';
+    let salesFilterCashier = 'Semua';
+
+    function renderSalesPage(container) {
+      const m = computeMetrics();
+      const cashiers = ['Semua', ...appState.employees.map(e => e.name)];
+
+      const filtered = appState.sales.filter(s => {
+        const matchDate = !salesFilterDate || s.date === salesFilterDate;
+        const matchCashier = salesFilterCashier === 'Semua' || s.cashier === salesFilterCashier;
+        return matchDate && matchCashier;
+      }).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+      const filteredOmzet = filtered.filter(s => s.status === 'Selesai').reduce((sum, s) => sum + s.totalPay, 0);
+      const filteredProfit = filtered.filter(s => s.status === 'Selesai').reduce((sum, s) => sum + s.profit, 0);
+
+      container.innerHTML = `
+        <!-- Summary Header -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="glass-card rounded-2xl p-5">
+            <p class="text-xs text-slate-400">Omzet Penjualan (Filter Aktif)</p>
+            <p class="text-xl sm:text-2xl font-extrabold text-white font-mono mt-1">${formatIDR(filteredOmzet)}</p>
+            <p class="text-xs text-blue-400 mt-1">${filtered.filter(s => s.status === 'Selesai').length} Transaksi Selesai</p>
+          </div>
+          <div class="glass-card rounded-2xl p-5">
+            <p class="text-xs text-slate-400">Keuntungan Penjualan (Filter Aktif)</p>
+            <p class="text-xl sm:text-2xl font-extrabold text-emerald-400 font-mono mt-1">${formatIDR(filteredProfit)}</p>
+            <p class="text-xs text-slate-400 mt-1">Dihitung otomatis dari selisih harga modal</p>
+          </div>
+          <div class="glass-card rounded-2xl p-5 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-slate-400">Kasir & Point of Sale</p>
+              <p class="text-sm font-bold text-white mt-1">Input Nota Penjualan Baru</p>
+              <p class="text-xs text-slate-400">Stok otomatis berkurang</p>
+            </div>
+            <button onclick="openSaleModal()" class="gradient-btn text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl">
+              + Transaksi Baru
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Table -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400">Tanggal:</label>
+                <input type="date" value="${salesFilterDate}" onchange="salesFilterDate=this.value; renderCurrentPage();"
+                  class="bg-[#0D0F17] border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white" />
+              </div>
+              <select onchange="salesFilterCashier=this.value; renderCurrentPage();"
+                class="bg-[#0D0F17] border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white">
+                ${cashiers.map(c => `<option value="${escapeHTML(c)}" ${c === salesFilterCashier ? 'selected' : ''}>Penjual: ${escapeHTML(c)}</option>`).join('')}
+              </select>
+              ${(salesFilterDate || salesFilterCashier !== 'Semua') ? `
+                <button onclick="salesFilterDate=''; salesFilterCashier='Semua'; renderCurrentPage();" class="text-xs text-rose-400 hover:underline">Reset Filter</button>
+              ` : ''}
+            </div>
+            <span class="text-xs text-slate-400">Menampilkan ${filtered.length} transaksi</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">ID Nota</th>
+                  <th class="py-3 px-3">Tanggal</th>
+                  <th class="py-3 px-3">Pelanggan</th>
+                  <th class="py-3 px-3">Penjual / Kasir</th>
+                  <th class="py-3 px-3">Produk Dibeli</th>
+                  <th class="py-3 px-3 text-right">Diskon</th>
+                  <th class="py-3 px-3 text-right">Total Bayar</th>
+                  <th class="py-3 px-3 text-right">Keuntungan</th>
+                  <th class="py-3 px-3 text-center">Status</th>
+                  <th class="py-3 px-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${filtered.map(s => `
+                  <tr class="hover:bg-slate-800/30 ${s.status === 'Dibatalkan' ? 'opacity-60' : ''}">
+                    <td class="py-3 px-3 font-mono font-bold text-blue-400 whitespace-nowrap">${s.id}</td>
+                    <td class="py-3 px-3 text-slate-300 whitespace-nowrap">${formatDateID(s.date)}</td>
+                    <td class="py-3 px-3 font-medium text-white">${escapeHTML(s.customer)}</td>
+                    <td class="py-3 px-3 text-slate-400 whitespace-nowrap">${escapeHTML(s.cashier)}</td>
+                    <td class="py-3 px-3 text-xs text-slate-300 max-w-xs">
+                      ${s.items.map(it => `<div>• ${escapeHTML(it.name)} <span class="text-blue-400 font-semibold">(x${it.qty})</span></div>`).join('')}
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono text-slate-400 whitespace-nowrap">${formatIDR(s.discount)}</td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-white whitespace-nowrap">
+                      ${formatIDR(s.totalPay)}
+                      <div class="text-[10px] font-sans font-normal text-slate-400">${s.method}</div>
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono font-semibold text-emerald-400 whitespace-nowrap">${formatIDR(s.profit)}</td>
+                    <td class="py-3 px-3 text-center whitespace-nowrap">
+                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${s.status === 'Selesai' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}">
+                        ${s.status}
+                      </span>
+                    </td>
+                    <td class="py-3 px-3 text-center whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1.5">
+                        <button onclick="printSaleReceipt('${s.id}')" class="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/30" title="Cetak Nota">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        </button>
+                        ${s.status === 'Selesai' ? `
+                          <button onclick="openSaleModal('${s.id}')" class="p-1.5 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/30" title="Edit Transaksi">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button onclick="cancelSaleTransaction('${s.id}')" class="p-1.5 rounded-lg bg-rose-500/15 text-rose-400 hover:bg-rose-500/30" title="Batalkan Transaksi (Kembalikan Stok)">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                          </button>
+                        ` : ''}
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    let tempSaleItems = [];
+
+    function openSaleModal(editSaleId = null) {
+      const existingSale = editSaleId ? appState.sales.find(s => s.id === editSaleId) : null;
+      const nextNum = String(appState.sales.length + 1).padStart(3, '0');
+      tempSaleItems = existingSale
+        ? existingSale.items.map(it => ({ sku: it.sku, qty: it.qty, unitPrice: it.unitPrice }))
+        : [{ sku: appState.products[0]?.sku || '', qty: 1, unitPrice: appState.products[0]?.sellPrice || 0 }];
+
+      const cashierOpts = appState.employees.filter(e => e.status === 'Aktif').map(e =>
+        `<option value="${escapeHTML(e.name)}" ${existingSale && existingSale.cashier === e.name ? 'selected' : ''}>${escapeHTML(e.name)} (${escapeHTML(e.role)})</option>`
+      ).join('');
+
+      openModal(existingSale ? `Edit Transaksi Penjualan (${existingSale.id})` : 'Kasir POS — Transaksi Penjualan Baru', `
+        <form onsubmit="saveSaleForm(event, '${editSaleId || ''}')" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">ID Transaksi</label>
+              <input type="text" name="id" readonly value="${existingSale ? existingSale.id : 'INV-202611-' + nextNum}"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-blue-400 font-mono opacity-80" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Tanggal Transaksi *</label>
+              <input type="date" name="date" required value="${existingSale ? existingSale.date : '2026-11-17'}"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Metode Pembayaran *</label>
+              <select name="method" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                ${['Transfer', 'Cash', 'QRIS'].map(m => `<option value="${m}" ${existingSale && existingSale.method === m ? 'selected' : ''}>${m}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Pelanggan *</label>
+              <input type="text" name="customer" required value="${existingSale ? escapeHTML(existingSale.customer) : ''}" placeholder="Nama pembeli / instansi"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Penjual / Kasir *</label>
+              <select name="cashier" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                ${cashierOpts}
+              </select>
+            </div>
+          </div>
+
+          <!-- Line Items -->
+          <div class="border border-slate-800 rounded-xl p-3.5 bg-[#0D0F17]/70 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Daftar Barang Dibeli</span>
+              <button type="button" onclick="addSaleLineItem()" class="text-xs font-semibold text-blue-400 hover:text-blue-300">+ Tambah Baris Produk</button>
+            </div>
+            <div id="sale-items-container" class="space-y-2.5"></div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center bg-[#0E1018] p-4 rounded-xl border border-slate-800">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Diskon Nota (IDR)</label>
+              <input type="number" id="sale-discount-input" name="discount" min="0" value="${existingSale ? existingSale.discount : 0}" oninput="recalcSaleModalTotals()"
+                class="w-full bg-[#141724] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+            </div>
+            <div class="text-right space-y-1">
+              <p class="text-xs text-slate-400">Subtotal: <span id="sale-subtotal-display" class="font-mono text-slate-200">Rp 0</span></p>
+              <p class="text-base font-extrabold text-white">Total Bayar: <span id="sale-total-display" class="font-mono text-blue-400">Rp 0</span></p>
+              <p class="text-xs text-emerald-400">Estimasi Keuntungan: <span id="sale-profit-display" class="font-mono font-semibold">Rp 0</span></p>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+            <button type="submit" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold">Simpan Transaksi</button>
+          </div>
+        </form>
+      `);
+
+      renderSaleModalLines();
+    }
+
+    function renderSaleModalLines() {
+      const container = document.getElementById('sale-items-container');
+      if (!container) return;
+      container.innerHTML = tempSaleItems.map((item, idx) => {
+        const prodOpts = appState.products.map(p =>
+          `<option value="${p.sku}" ${p.sku === item.sku ? 'selected' : ''}>${p.sku} — ${escapeHTML(p.name)} (Stok: ${p.stock})</option>`
+        ).join('');
+        return `
+          <div class="grid grid-cols-12 gap-2 items-center">
+            <div class="col-span-12 sm:col-span-6">
+              <select onchange="updateSaleLine(${idx}, 'sku', this.value)" class="w-full bg-[#141724] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                ${prodOpts}
+              </select>
+            </div>
+            <div class="col-span-4 sm:col-span-2">
+              <input type="number" min="1" value="${item.qty}" onchange="updateSaleLine(${idx}, 'qty', this.value)" placeholder="Qty"
+                class="w-full bg-[#141724] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono text-center" />
+            </div>
+            <div class="col-span-6 sm:col-span-3">
+              <input type="number" min="0" value="${item.unitPrice}" onchange="updateSaleLine(${idx}, 'unitPrice', this.value)"
+                class="w-full bg-[#141724] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono text-right" />
+            </div>
+            <div class="col-span-2 sm:col-span-1 text-right">
+              ${tempSaleItems.length > 1 ? `
+                <button type="button" onclick="removeSaleLine(${idx})" class="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg">✕</button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+      recalcSaleModalTotals();
+    }
+
+    function addSaleLineItem() {
+      const first = appState.products[0];
+      tempSaleItems.push({ sku: first ? first.sku : '', qty: 1, unitPrice: first ? first.sellPrice : 0 });
+      renderSaleModalLines();
+    }
+
+    function removeSaleLine(idx) {
+      tempSaleItems.splice(idx, 1);
+      renderSaleModalLines();
+    }
+
+    function updateSaleLine(idx, field, value) {
+      if (field === 'sku') {
+        const prod = appState.products.find(p => p.sku === value);
+        tempSaleItems[idx].sku = value;
+        tempSaleItems[idx].unitPrice = prod ? prod.sellPrice : 0;
+        renderSaleModalLines();
+      } else {
+        tempSaleItems[idx][field] = Number(value) || 0;
+        recalcSaleModalTotals();
+      }
+    }
+
+    function recalcSaleModalTotals() {
+      const discount = Number(document.getElementById('sale-discount-input')?.value) || 0;
+      let subtotal = 0;
+      let totalCost = 0;
+      tempSaleItems.forEach(it => {
+        const prod = appState.products.find(p => p.sku === it.sku);
+        subtotal += it.qty * it.unitPrice;
+        totalCost += it.qty * (prod ? prod.costPrice : 0);
+      });
+      const totalPay = Math.max(0, subtotal - discount);
+      const profit = totalPay - totalCost;
+
+      const elSub = document.getElementById('sale-subtotal-display');
+      const elTot = document.getElementById('sale-total-display');
+      const elProf = document.getElementById('sale-profit-display');
+      if (elSub) elSub.textContent = formatIDR(subtotal);
+      if (elTot) elTot.textContent = formatIDR(totalPay);
+      if (elProf) elProf.textContent = formatIDR(profit);
+    }
+
+    function saveSaleForm(e, editSaleId) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const id = fd.get('id');
+      const date = fd.get('date');
+      const customer = fd.get('customer').trim();
+      const cashier = fd.get('cashier');
+      const method = fd.get('method');
+      const discount = Number(fd.get('discount')) || 0;
+
+      // If editing, restore previous stock temporarily to validate new stock
+      let oldSale = null;
+      if (editSaleId) {
+        oldSale = appState.sales.find(s => s.id === editSaleId);
+        if (oldSale && oldSale.status === 'Selesai') {
+          oldSale.items.forEach(it => {
+            const p = appState.products.find(pr => pr.sku === it.sku);
+            if (p) p.stock += it.qty;
+          });
+        }
+      }
+
+      // Validate stock availability
+      const requestedMap = {};
+      for (const it of tempSaleItems) {
+        if (it.qty <= 0) continue;
+        requestedMap[it.sku] = (requestedMap[it.sku] || 0) + it.qty;
+      }
+
+      for (const [sku, reqQty] of Object.entries(requestedMap)) {
+        const prod = appState.products.find(p => p.sku === sku);
+        if (!prod || prod.stock < reqQty) {
+          // Rollback temporary restore if edit failed
+          if (oldSale && oldSale.status === 'Selesai') {
+            oldSale.items.forEach(it => {
+              const p = appState.products.find(pr => pr.sku === it.sku);
+              if (p) p.stock -= it.qty;
+            });
+          }
+          showToast(`Stok tidak mencukupi untuk ${prod ? prod.name : sku}!`, 'error');
+          return;
+        }
+      }
+
+      // Deduct stock & build enriched items
+      const detailedItems = tempSaleItems.filter(it => it.qty > 0).map(it => {
+        const prod = appState.products.find(p => p.sku === it.sku);
+        prod.stock -= it.qty;
+        return {
+          sku: prod.sku,
+          name: prod.name,
+          qty: it.qty,
+          unitPrice: it.unitPrice,
+          costPrice: prod.costPrice
+        };
+      });
+
+      const subtotal = detailedItems.reduce((s, i) => s + (i.qty * i.unitPrice), 0);
+      const totalCost = detailedItems.reduce((s, i) => s + (i.qty * i.costPrice), 0);
+      const totalPay = Math.max(0, subtotal - discount);
+      const profit = totalPay - totalCost;
+
+      const saleRecord = {
+        id,
+        date,
+        customer,
+        cashier,
+        method,
+        discount,
+        status: 'Selesai',
+        items: detailedItems,
+        subtotal,
+        totalCost,
+        totalPay,
+        profit
+      };
+
+      if (editSaleId) {
+        const idx = appState.sales.findIndex(s => s.id === editSaleId);
+        if (idx !== -1) appState.sales[idx] = saleRecord;
+        appState.stockLogs.unshift({
+          id: 'LOG-EDIT-' + Date.now(),
+          date,
+          sku: detailedItems[0]?.sku || '-',
+          productName: `${detailedItems.length} Item Nota ${id}`,
+          type: 'Revisi Penjualan',
+          qtyChange: -detailedItems.reduce((s, i) => s + i.qty, 0),
+          ref: id,
+          note: `Perubahan transaksi penjualan (${customer})`
+        });
+        showToast(`Transaksi ${id} diperbarui & stok disinkronkan!`);
+      } else {
+        appState.sales.unshift(saleRecord);
+        detailedItems.forEach(it => {
+          appState.stockLogs.unshift({
+            id: `LOG-${id}-${it.sku}-${Date.now()}`,
+            date,
+            sku: it.sku,
+            productName: it.name,
+            type: 'Keluar (Penjualan)',
+            qtyChange: -it.qty,
+            ref: id,
+            note: `Penjualan ke ${customer}`
+          });
+        });
+        showToast(`Transaksi ${id} berhasil disimpan! Stok & laporan diperbarui.`);
+      }
+
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+    }
+
+    function cancelSaleTransaction(saleId) {
+      const sale = appState.sales.find(s => s.id === saleId);
+      if (!sale || sale.status === 'Dibatalkan') return;
+
+      openModal('Konfirmasi Pembatalan Transaksi', `
+        <p class="text-sm text-slate-300 mb-4">
+          Batalkan nota <strong class="text-white">${sale.id}</strong> atas nama <strong class="text-white">${escapeHTML(sale.customer)}</strong>?
+          <br><span class="text-emerald-400 text-xs">Seluruh stok produk pada transaksi ini akan otomatis dikembalikan ke gudang dan laba rugi akan disesuaikan.</span>
+        </p>
+        <div class="flex justify-end gap-3">
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Tutup</button>
+          <button onclick="executeCancelSale('${saleId}')" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold">Ya, Batalkan Nota</button>
+        </div>
+      `);
+    }
+
+    function executeCancelSale(saleId) {
+      const sale = appState.sales.find(s => s.id === saleId);
+      if (!sale) return;
+
+      sale.status = 'Dibatalkan';
+      sale.profit = 0;
+      sale.totalCost = 0;
+
+      sale.items.forEach(it => {
+        const prod = appState.products.find(p => p.sku === it.sku);
+        if (prod) prod.stock += it.qty;
+        appState.stockLogs.unshift({
+          id: `LOG-RET-${sale.id}-${it.sku}-${Date.now()}`,
+          date: '2026-11-17',
+          sku: it.sku,
+          productName: it.name,
+          type: 'Retur (Batal Jual)',
+          qtyChange: +it.qty,
+          ref: sale.id,
+          note: `Pembatalan nota ${sale.id}`
+        });
+      });
+
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+      showToast(`Transaksi ${saleId} dibatalkan & stok telah dikembalikan!`, 'warning');
+    }
+
+    function printSaleReceipt(saleId) {
+      const sale = appState.sales.find(s => s.id === saleId);
+      if (!sale) return;
+      const st = appState.settings;
+
+      openModal(`Pratinjau Cetak Nota — ${sale.id}`, `
+        <div id="print-area" class="bg-white text-slate-900 p-6 rounded-xl font-sans text-sm space-y-4">
+          <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+            <div>
+              <h2 class="text-xl font-extrabold tracking-tight text-slate-950">${escapeHTML(st.storeName)}</h2>
+              <p class="text-xs text-slate-600">${escapeHTML(st.tagline)}</p>
+              <p class="text-xs text-slate-600 mt-1">${escapeHTML(st.address)}</p>
+              <p class="text-xs text-slate-600">Telp: ${escapeHTML(st.phone)} | NPWP: ${escapeHTML(st.npwp)}</p>
+            </div>
+            <div class="text-right">
+              <span class="px-2.5 py-1 bg-slate-900 text-white text-xs font-bold uppercase rounded">INVOICE PENJUALAN</span>
+              <p class="font-mono font-bold text-sm mt-2">${sale.id}</p>
+              <p class="text-xs text-slate-600">Tanggal: ${formatDateID(sale.date)}</p>
+              <p class="text-xs text-slate-600">Status: <strong>${sale.status}</strong></p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 text-xs bg-slate-100 p-3 rounded-lg">
+            <div>
+              <p class="text-slate-500">Pelanggan:</p>
+              <p class="font-bold text-slate-900 text-sm">${escapeHTML(sale.customer)}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-slate-500">Kasir / Penjual:</p>
+              <p class="font-bold text-slate-900">${escapeHTML(sale.cashier)}</p>
+              <p class="text-slate-600">Pembayaran: <strong>${sale.method}</strong></p>
+            </div>
+          </div>
+
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-400 text-slate-700">
+                <th class="py-2">SKU</th>
+                <th class="py-2">Nama Barang</th>
+                <th class="py-2 text-center">Qty</th>
+                <th class="py-2 text-right">Harga Satuan</th>
+                <th class="py-2 text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              ${sale.items.map(it => `
+                <tr>
+                  <td class="py-2 font-mono">${it.sku}</td>
+                  <td class="py-2 font-medium">${escapeHTML(it.name)}</td>
+                  <td class="py-2 text-center">${it.qty}</td>
+                  <td class="py-2 text-right font-mono">${formatIDR(it.unitPrice)}</td>
+                  <td class="py-2 text-right font-mono font-semibold">${formatIDR(it.qty * it.unitPrice)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="border-t border-slate-400 pt-3 flex justify-end">
+            <div class="w-64 space-y-1 text-xs">
+              <div class="flex justify-between"><span>Subtotal:</span><span class="font-mono">${formatIDR(sale.subtotal)}</span></div>
+              <div class="flex justify-between"><span>Diskon:</span><span class="font-mono">-${formatIDR(sale.discount)}</span></div>
+              <div class="flex justify-between text-base font-extrabold border-t border-slate-900 pt-1.5">
+                <span>TOTAL BAYAR:</span><span class="font-mono">${formatIDR(sale.totalPay)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center text-[11px] text-slate-500 pt-4 border-t border-dashed border-slate-300">
+            Terima kasih telah berbelanja di ${escapeHTML(st.storeName)}. Garansi resmi berlaku sesuai ketentuan distributor & nota ini.
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-4 no-print">
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Tutup</button>
+          <button onclick="window.print()" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>Cetak Sekarang</span>
+          </button>
+        </div>
+      `);
+    }
+
+    // =========================================================================
+    // 10. PAGE 5: MANAJEMEN PEMBELIAN (PURCHASE ORDERS)
+    // =========================================================================
+    let poFilterSupplier = 'Semua';
+    let poFilterDate = '';
+
+    function renderPurchasesPage(container) {
+      const supplierOpts = ['Semua', ...appState.suppliers.map(s => s.name)];
+      const filtered = appState.purchases.filter(po => {
+        const matchSup = poFilterSupplier === 'Semua' || po.supplier === poFilterSupplier;
+        const matchDate = !poFilterDate || po.date === poFilterDate;
+        return matchSup && matchDate;
+      }).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+      const totalFilteredPO = filtered.reduce((s, p) => s + p.total, 0);
+
+      container.innerHTML = `
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <select onchange="poFilterSupplier=this.value; renderCurrentPage();"
+                class="bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white">
+                ${supplierOpts.map(s => `<option value="${escapeHTML(s)}" ${s === poFilterSupplier ? 'selected' : ''}>Supplier: ${escapeHTML(s)}</option>`).join('')}
+              </select>
+              <input type="date" value="${poFilterDate}" onchange="poFilterDate=this.value; renderCurrentPage();"
+                class="bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white" />
+              ${(poFilterSupplier !== 'Semua' || poFilterDate) ? `
+                <button onclick="poFilterSupplier='Semua'; poFilterDate=''; renderCurrentPage();" class="text-xs text-rose-400 hover:underline">Reset</button>
+              ` : ''}
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="text-right hidden sm:block">
+                <p class="text-[11px] text-slate-400">Total Pembelian Tampil</p>
+                <p class="text-sm font-bold text-purple-400 font-mono">${formatIDR(totalFilteredPO)}</p>
+              </div>
+              <button onclick="openPurchaseModal()" class="gradient-btn text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl">
+                + Tambah Pembelian
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">No. Pembelian</th>
+                  <th class="py-3 px-3">Tanggal</th>
+                  <th class="py-3 px-3">Supplier</th>
+                  <th class="py-3 px-3">Rincian Barang</th>
+                  <th class="py-3 px-3 text-right">Total Pembelian</th>
+                  <th class="py-3 px-3 text-center">Status Bayar</th>
+                  <th class="py-3 px-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${filtered.map(po => `
+                  <tr class="hover:bg-slate-800/30">
+                    <td class="py-3 px-3 font-mono font-bold text-purple-400 whitespace-nowrap">${po.id}</td>
+                    <td class="py-3 px-3 text-slate-300 whitespace-nowrap">${formatDateID(po.date)}</td>
+                    <td class="py-3 px-3 font-medium text-white whitespace-nowrap">${escapeHTML(po.supplier)}</td>
+                    <td class="py-3 px-3 text-xs text-slate-300">
+                      ${po.items.map(it => `<div>• ${escapeHTML(it.name)} <span class="text-emerald-400 font-semibold">(+${it.qty} @ ${formatIDR(it.buyPrice)})</span></div>`).join('')}
+                    </td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-white whitespace-nowrap">${formatIDR(po.total)}</td>
+                    <td class="py-3 px-3 text-center whitespace-nowrap">
+                      <button onclick="togglePurchaseStatus('${po.id}')" title="Klik untuk ubah status pelunasan"
+                        class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold cursor-pointer ${po.status === 'Lunas' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'}">
+                        ${po.status}
+                      </button>
+                    </td>
+                    <td class="py-3 px-3 text-center whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1.5">
+                        <button onclick="printPurchaseOrder('${po.id}')" class="p-1.5 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/30" title="Cetak Bukti Pembelian">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        </button>
+                        <button onclick="openPurchaseModal('${po.id}')" class="p-1.5 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/30" title="Edit Pembelian">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    let tempPOItems = [];
+
+    function openPurchaseModal(editPoId = null) {
+      const existingPO = editPoId ? appState.purchases.find(p => p.id === editPoId) : null;
+      const nextNum = String(appState.purchases.length + 1).padStart(3, '0');
+      tempPOItems = existingPO
+        ? existingPO.items.map(it => ({ sku: it.sku, qty: it.qty, buyPrice: it.buyPrice }))
+        : [{ sku: appState.products[0]?.sku || '', qty: 5, buyPrice: appState.products[0]?.costPrice || 0 }];
+
+      const supOpts = appState.suppliers.map(s =>
+        `<option value="${escapeHTML(s.name)}" ${existingPO && existingPO.supplier === s.name ? 'selected' : ''}>${escapeHTML(s.name)}</option>`
+      ).join('');
+
+      openModal(existingPO ? `Edit Pembelian (${existingPO.id})` : 'Input Pembelian Barang (Restock Supplier)', `
+        <form onsubmit="savePurchaseForm(event, '${editPoId || ''}')" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">No. Pembelian</label>
+              <input type="text" name="id" readonly value="${existingPO ? existingPO.id : 'PO-202611-' + nextNum}"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-purple-400 font-mono opacity-80" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Tanggal Pembelian *</label>
+              <input type="date" name="date" required value="${existingPO ? existingPO.date : '2026-11-17'}"
+                class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Status Pembayaran *</label>
+              <select name="status" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                <option value="Lunas" ${existingPO && existingPO.status === 'Lunas' ? 'selected' : ''}>Lunas</option>
+                <option value="Belum Lunas" ${existingPO && existingPO.status === 'Belum Lunas' ? 'selected' : ''}>Belum Lunas</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Supplier *</label>
+            <select name="supplier" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+              ${supOpts}
+            </select>
+          </div>
+
+          <div class="border border-slate-800 rounded-xl p-3.5 bg-[#0D0F17]/70 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Item Barang Dibeli</span>
+              <button type="button" onclick="addPOLineItem()" class="text-xs font-semibold text-purple-400 hover:text-purple-300">+ Tambah Baris</button>
+            </div>
+            <div id="po-items-container" class="space-y-2.5"></div>
+          </div>
+
+          <div class="bg-[#0E1018] p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+            <span class="text-xs text-slate-400">Stok produk akan otomatis bertambah saat disimpan</span>
+            <p class="text-base font-extrabold text-white">Total PO: <span id="po-total-display" class="font-mono text-purple-400">Rp 0</span></p>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+            <button type="submit" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold">Simpan Pembelian</button>
+          </div>
+        </form>
+      `);
+
+      renderPOModalLines();
+    }
+
+    function renderPOModalLines() {
+      const container = document.getElementById('po-items-container');
+      if (!container) return;
+      container.innerHTML = tempPOItems.map((item, idx) => {
+        const prodOpts = appState.products.map(p =>
+          `<option value="${p.sku}" ${p.sku === item.sku ? 'selected' : ''}>${p.sku} — ${escapeHTML(p.name)}</option>`
+        ).join('');
+        return `
+          <div class="grid grid-cols-12 gap-2 items-center">
+            <div class="col-span-12 sm:col-span-6">
+              <select onchange="updatePOLine(${idx}, 'sku', this.value)" class="w-full bg-[#141724] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white">
+                ${prodOpts}
+              </select>
+            </div>
+            <div class="col-span-4 sm:col-span-2">
+              <input type="number" min="1" value="${item.qty}" onchange="updatePOLine(${idx}, 'qty', this.value)"
+                class="w-full bg-[#141724] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono text-center" />
+            </div>
+            <div class="col-span-6 sm:col-span-3">
+              <input type="number" min="0" value="${item.buyPrice}" onchange="updatePOLine(${idx}, 'buyPrice', this.value)"
+                class="w-full bg-[#141724] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono text-right" />
+            </div>
+            <div class="col-span-2 sm:col-span-1 text-right">
+              ${tempPOItems.length > 1 ? `<button type="button" onclick="removePOLine(${idx})" class="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg">✕</button>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+      recalcPOModalTotal();
+    }
+
+    function addPOLineItem() {
+      const first = appState.products[0];
+      tempPOItems.push({ sku: first ? first.sku : '', qty: 5, buyPrice: first ? first.costPrice : 0 });
+      renderPOModalLines();
+    }
+
+    function removePOLine(idx) {
+      tempPOItems.splice(idx, 1);
+      renderPOModalLines();
+    }
+
+    function updatePOLine(idx, field, val) {
+      if (field === 'sku') {
+        const prod = appState.products.find(p => p.sku === val);
+        tempPOItems[idx].sku = val;
+        tempPOItems[idx].buyPrice = prod ? prod.costPrice : 0;
+        renderPOModalLines();
+      } else {
+        tempPOItems[idx][field] = Number(val) || 0;
+        recalcPOModalTotal();
+      }
+    }
+
+    function recalcPOModalTotal() {
+      const tot = tempPOItems.reduce((s, it) => s + (it.qty * it.buyPrice), 0);
+      const el = document.getElementById('po-total-display');
+      if (el) el.textContent = formatIDR(tot);
+    }
+
+    function savePurchaseForm(e, editPoId) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const id = fd.get('id');
+      const date = fd.get('date');
+      const status = fd.get('status');
+      const supplier = fd.get('supplier');
+
+      // Reverse old stock if editing
+      if (editPoId) {
+        const oldPO = appState.purchases.find(p => p.id === editPoId);
+        if (oldPO) {
+          oldPO.items.forEach(it => {
+            const p = appState.products.find(pr => pr.sku === it.sku);
+            if (p) p.stock = Math.max(0, p.stock - it.qty);
+          });
+        }
+      }
+
+      const detailedItems = tempPOItems.filter(it => it.qty > 0).map(it => {
+        const prod = appState.products.find(p => p.sku === it.sku);
+        prod.stock += it.qty;
+        if (it.buyPrice > 0) prod.costPrice = it.buyPrice;
+        return {
+          sku: prod.sku,
+          name: prod.name,
+          qty: it.qty,
+          buyPrice: it.buyPrice
+        };
+      });
+
+      const total = detailedItems.reduce((s, i) => s + (i.qty * i.buyPrice), 0);
+      const poRecord = { id, date, supplier, status, items: detailedItems, total };
+
+      if (editPoId) {
+        const idx = appState.purchases.findIndex(p => p.id === editPoId);
+        if (idx !== -1) appState.purchases[idx] = poRecord;
+        showToast(`Pembelian ${id} berhasil diperbarui!`);
+      } else {
+        appState.purchases.unshift(poRecord);
+        detailedItems.forEach(it => {
+          appState.stockLogs.unshift({
+            id: `LOG-${id}-${it.sku}-${Date.now()}`,
+            date,
+            sku: it.sku,
+            productName: it.name,
+            type: 'Masuk (Pembelian)',
+            qtyChange: +it.qty,
+            ref: id,
+            note: `Pembelian dari ${supplier}`
+          });
+        });
+        showToast(`Pembelian ${id} disimpan! Stok barang otomatis bertambah.`);
+      }
+
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+    }
+
+    function togglePurchaseStatus(poId) {
+      const po = appState.purchases.find(p => p.id === poId);
+      if (!po) return;
+      po.status = po.status === 'Lunas' ? 'Belum Lunas' : 'Lunas';
+      saveAppState();
+      renderCurrentPage();
+      showToast(`Status ${po.id} diubah menjadi ${po.status}.`, 'info');
+    }
+
+    function printPurchaseOrder(poId) {
+      const po = appState.purchases.find(p => p.id === poId);
+      if (!po) return;
+      const st = appState.settings;
+
+      openModal(`Bukti Pembelian Barang — ${po.id}`, `
+        <div id="print-area" class="bg-white text-slate-900 p-6 rounded-xl font-sans text-sm space-y-4">
+          <div class="flex justify-between items-start border-b-2 border-slate-900 pb-4">
+            <div>
+              <h2 class="text-xl font-extrabold text-slate-950">${escapeHTML(st.storeName)}</h2>
+              <p class="text-xs text-slate-600">${escapeHTML(st.address)}</p>
+              <p class="text-xs text-slate-600">Telp: ${escapeHTML(st.phone)}</p>
+            </div>
+            <div class="text-right">
+              <span class="px-2.5 py-1 bg-indigo-900 text-white text-xs font-bold uppercase rounded">BUKTI PEMBELIAN (PO)</span>
+              <p class="font-mono font-bold text-sm mt-2">${po.id}</p>
+              <p class="text-xs text-slate-600">Tanggal: ${formatDateID(po.date)}</p>
+              <p class="text-xs text-slate-600">Pembayaran: <strong>${po.status}</strong></p>
+            </div>
+          </div>
+
+          <div class="bg-slate-100 p-3 rounded-lg text-xs">
+            <span class="text-slate-500">Supplier / Distributor:</span>
+            <p class="font-bold text-slate-900 text-sm">${escapeHTML(po.supplier)}</p>
+          </div>
+
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-400 text-slate-700">
+                <th class="py-2">SKU</th>
+                <th class="py-2">Nama Barang</th>
+                <th class="py-2 text-center">Qty Masuk</th>
+                <th class="py-2 text-right">Harga Beli</th>
+                <th class="py-2 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              ${po.items.map(it => `
+                <tr>
+                  <td class="py-2 font-mono">${it.sku}</td>
+                  <td class="py-2 font-medium">${escapeHTML(it.name)}</td>
+                  <td class="py-2 text-center">${it.qty}</td>
+                  <td class="py-2 text-right font-mono">${formatIDR(it.buyPrice)}</td>
+                  <td class="py-2 text-right font-mono font-semibold">${formatIDR(it.qty * it.buyPrice)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="border-t border-slate-400 pt-3 flex justify-end">
+            <div class="text-right">
+              <p class="text-xs text-slate-500">Total Nilai Pembelian</p>
+              <p class="text-lg font-extrabold font-mono">${formatIDR(po.total)}</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-3 mt-4 no-print">
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Tutup</button>
+          <button onclick="window.print()" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold">Cetak Bukti PO</button>
+        </div>
+      `);
+    }
+
+    // =========================================================================
+    // 11. PAGE 6: DATA PENJUAL & KARYAWAN (LEADERBOARD)
+    // =========================================================================
+    function renderEmployeesPage(container) {
+      const m = computeMetrics();
+
+      container.innerHTML = `
+        <!-- Top Seller Leaderboard Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          ${m.employeeStats.map((emp, idx) => {
+            const rankBadge = idx === 0
+              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+              : idx === 1
+                ? 'bg-slate-400/20 text-slate-200 border-slate-400/40'
+                : idx === 2
+                  ? 'bg-orange-600/20 text-orange-300 border-orange-500/40'
+                  : 'bg-slate-800 text-slate-400 border-slate-700';
+            return `
+              <div class="glass-card glass-card-hover rounded-2xl p-5 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${rankBadge}">Peringkat #${idx + 1}</span>
+                    <span class="text-xs font-mono text-slate-400">${emp.id}</span>
+                  </div>
+                  <h4 class="text-base font-bold text-white">${escapeHTML(emp.name)}</h4>
+                  <p class="text-xs text-blue-400 font-medium">${escapeHTML(emp.role)}</p>
+                  <p class="text-xs text-slate-400 mt-1">${escapeHTML(emp.phone)}</p>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-800 space-y-1">
+                  <div class="flex justify-between text-xs">
+                    <span class="text-slate-400">Total Transaksi:</span>
+                    <span class="font-bold text-white">${emp.txCount} Nota</span>
+                  </div>
+                  <div class="flex justify-between text-xs">
+                    <span class="text-slate-400">Total Omzet:</span>
+                    <span class="font-mono font-bold text-emerald-400">${formatIDR(emp.omzet)}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Employee Management Table -->
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Daftar Karyawan & Tim Penjualan GVH STORE</h3>
+              <p class="text-xs text-slate-400">Omzet dan jumlah transaksi dihitung otomatis dari nota penjualan selesai</p>
+            </div>
+            <button onclick="openEmployeeModal()" class="gradient-btn text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl">+ Tambah Karyawan</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">ID</th>
+                  <th class="py-3 px-3">Nama Karyawan</th>
+                  <th class="py-3 px-3">Jabatan</th>
+                  <th class="py-3 px-3">No. Telepon</th>
+                  <th class="py-3 px-3 text-center">Transaksi</th>
+                  <th class="py-3 px-3 text-right">Omzet Dihasilkan</th>
+                  <th class="py-3 px-3 text-right">Kontribusi Laba</th>
+                  <th class="py-3 px-3 text-center">Status</th>
+                  <th class="py-3 px-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${m.employeeStats.map(emp => `
+                  <tr class="hover:bg-slate-800/30">
+                    <td class="py-3 px-3 font-mono text-blue-400 font-semibold">${emp.id}</td>
+                    <td class="py-3 px-3 font-bold text-white">${escapeHTML(emp.name)}</td>
+                    <td class="py-3 px-3 text-slate-300">${escapeHTML(emp.role)}</td>
+                    <td class="py-3 px-3 text-slate-400">${escapeHTML(emp.phone)}</td>
+                    <td class="py-3 px-3 text-center font-bold text-white">${emp.txCount}</td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-blue-400">${formatIDR(emp.omzet)}</td>
+                    <td class="py-3 px-3 text-right font-mono text-emerald-400">${formatIDR(emp.profit)}</td>
+                    <td class="py-3 px-3 text-center">
+                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${emp.status === 'Aktif' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-700 text-slate-300'}">${emp.status}</span>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                      <button onclick="openEmployeeModal('${emp.id}')" class="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/30 text-xs">Edit</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openEmployeeModal(editId = null) {
+      const emp = editId ? appState.employees.find(e => e.id === editId) : null;
+      const nextId = 'KRY-' + String(appState.employees.length + 1).padStart(2, '0');
+      openModal(emp ? `Edit Karyawan (${emp.id})` : 'Tambah Karyawan Baru', `
+        <form onsubmit="saveEmployeeForm(event, '${editId || ''}')" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">ID Karyawan</label>
+              <input type="text" name="id" readonly value="${emp ? emp.id : nextId}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-blue-400 font-mono opacity-80" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Status</label>
+              <select name="status" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                <option value="Aktif" ${emp && emp.status === 'Aktif' ? 'selected' : ''}>Aktif</option>
+                <option value="Non-Aktif" ${emp && emp.status === 'Non-Aktif' ? 'selected' : ''}>Non-Aktif</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Lengkap *</label>
+            <input type="text" name="name" required value="${emp ? escapeHTML(emp.name) : ''}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Jabatan *</label>
+              <input type="text" name="role" required value="${emp ? escapeHTML(emp.role) : ''}" placeholder="Contoh: Sales & Kasir" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Nomor Telepon *</label>
+              <input type="text" name="phone" required value="${emp ? escapeHTML(emp.phone) : ''}" placeholder="0812-xxxx-xxxx" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+            <button type="submit" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold">Simpan Karyawan</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function saveEmployeeForm(e, editId) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const record = {
+        id: fd.get('id'),
+        name: fd.get('name').trim(),
+        role: fd.get('role').trim(),
+        phone: fd.get('phone').trim(),
+        status: fd.get('status')
+      };
+      if (editId) {
+        const idx = appState.employees.findIndex(emp => emp.id === editId);
+        if (idx !== -1) appState.employees[idx] = record;
+        showToast('Data karyawan diperbarui!');
+      } else {
+        appState.employees.push(record);
+        showToast('Karyawan baru ditambahkan!');
+      }
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+    }
+
+    // =========================================================================
+    // 12. PAGE 7: SUPPLIER
+    // =========================================================================
+    function renderSuppliersPage(container) {
+      const m = computeMetrics();
+      container.innerHTML = `
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-white">Daftar Distributor & Supplier Resmi</h3>
+              <p class="text-xs text-slate-400">Akumulasi total pembelian terhubung langsung dengan modul Pembelian (PO)</p>
+            </div>
+            <button onclick="openSupplierModal()" class="gradient-btn text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl">+ Tambah Supplier</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">ID</th>
+                  <th class="py-3 px-3">Nama Supplier</th>
+                  <th class="py-3 px-3">Kontak PIC</th>
+                  <th class="py-3 px-3">Alamat</th>
+                  <th class="py-3 px-3">Produk Disediakan</th>
+                  <th class="py-3 px-3 text-center">Jml PO</th>
+                  <th class="py-3 px-3 text-right">Total Pembelian</th>
+                  <th class="py-3 px-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${m.supplierStats.map(sup => `
+                  <tr class="hover:bg-slate-800/30">
+                    <td class="py-3 px-3 font-mono text-purple-400 font-semibold">${sup.id}</td>
+                    <td class="py-3 px-3 font-bold text-white whitespace-nowrap">${escapeHTML(sup.name)}</td>
+                    <td class="py-3 px-3 text-slate-300 whitespace-nowrap">${escapeHTML(sup.contact)}</td>
+                    <td class="py-3 px-3 text-xs text-slate-400 max-w-xs">${escapeHTML(sup.address)}</td>
+                    <td class="py-3 px-3 text-xs text-blue-300">${escapeHTML(sup.categories)}</td>
+                    <td class="py-3 px-3 text-center font-bold text-white">${sup.poCount}</td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-emerald-400 whitespace-nowrap">${formatIDR(sup.totalBought)}</td>
+                    <td class="py-3 px-3 text-center">
+                      <button onclick="openSupplierModal('${sup.id}')" class="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/30 text-xs">Edit</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openSupplierModal(editId = null) {
+      const sup = editId ? appState.suppliers.find(s => s.id === editId) : null;
+      const nextId = 'SUP-' + String(appState.suppliers.length + 1).padStart(2, '0');
+      openModal(sup ? `Edit Supplier (${sup.id})` : 'Tambah Supplier Baru', `
+        <form onsubmit="saveSupplierForm(event, '${editId || ''}')" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">ID Supplier</label>
+              <input type="text" name="id" readonly value="${sup ? sup.id : nextId}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-purple-400 font-mono opacity-80" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Perusahaan Supplier *</label>
+              <input type="text" name="name" required value="${sup ? escapeHTML(sup.name) : ''}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Kontak & Telepon *</label>
+              <input type="text" name="contact" required value="${sup ? escapeHTML(sup.contact) : ''}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Kategori Produk Utama *</label>
+              <input type="text" name="categories" required value="${sup ? escapeHTML(sup.categories) : ''}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Alamat Lengkap *</label>
+            <input type="text" name="address" required value="${sup ? escapeHTML(sup.address) : ''}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+          </div>
+          <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+            <button type="submit" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold">Simpan Supplier</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function saveSupplierForm(e, editId) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const record = {
+        id: fd.get('id'),
+        name: fd.get('name').trim(),
+        contact: fd.get('contact').trim(),
+        address: fd.get('address').trim(),
+        categories: fd.get('categories').trim()
+      };
+      if (editId) {
+        const idx = appState.suppliers.findIndex(s => s.id === editId);
+        if (idx !== -1) appState.suppliers[idx] = record;
+        showToast('Data supplier diperbarui!');
+      } else {
+        appState.suppliers.push(record);
+        showToast('Supplier baru berhasil ditambahkan!');
+      }
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+    }
+
+    // =========================================================================
+    // 13. PAGE 8: PENGELUARAN OPERASIONAL
+    // =========================================================================
+    let expenseFilterCat = 'Semua';
+
+    function renderExpensesPage(container) {
+      const cats = ['Semua', 'Sewa Toko', 'Gaji Karyawan', 'Listrik', 'Internet', 'Transportasi', 'Perawatan', 'Lainnya'];
+      const filtered = appState.expenses
+        .filter(e => expenseFilterCat === 'Semua' || e.category === expenseFilterCat)
+        .sort((a, b) => b.date.localeCompare(a.date));
+
+      const totalExp = filtered.reduce((s, e) => s + e.amount, 0);
+
+      container.innerHTML = `
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-3">
+              <select onchange="expenseFilterCat=this.value; renderCurrentPage();"
+                class="bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white">
+                ${cats.map(c => `<option value="${c}" ${c === expenseFilterCat ? 'selected' : ''}>Kategori: ${c}</option>`).join('')}
+              </select>
+              <div class="px-3.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300">
+                Total Biaya: <strong class="font-mono">${formatIDR(totalExp)}</strong>
+              </div>
+            </div>
+            <button onclick="openExpenseModal()" class="gradient-btn text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl">+ Catat Pengeluaran</button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th class="py-3 px-3">ID</th>
+                  <th class="py-3 px-3">Tanggal</th>
+                  <th class="py-3 px-3">Kategori</th>
+                  <th class="py-3 px-3">Keterangan Pengeluaran</th>
+                  <th class="py-3 px-3">Metode</th>
+                  <th class="py-3 px-3 text-right">Nominal (IDR)</th>
+                  <th class="py-3 px-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800/60 text-xs sm:text-sm">
+                ${filtered.map(exp => `
+                  <tr class="hover:bg-slate-800/30">
+                    <td class="py-3 px-3 font-mono text-rose-400 font-semibold whitespace-nowrap">${exp.id}</td>
+                    <td class="py-3 px-3 text-slate-300 whitespace-nowrap">${formatDateID(exp.date)}</td>
+                    <td class="py-3 px-3 whitespace-nowrap"><span class="px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-200 text-xs font-medium">${escapeHTML(exp.category)}</span></td>
+                    <td class="py-3 px-3 text-white">${escapeHTML(exp.description)}</td>
+                    <td class="py-3 px-3 text-slate-400">${escapeHTML(exp.method)}</td>
+                    <td class="py-3 px-3 text-right font-mono font-bold text-rose-400 whitespace-nowrap">${formatIDR(exp.amount)}</td>
+                    <td class="py-3 px-3 text-center">
+                      <button onclick="deleteExpense('${exp.id}')" class="p-1.5 rounded-lg bg-rose-500/15 text-rose-400 hover:bg-rose-500/30" title="Hapus Pengeluaran">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function openExpenseModal() {
+      const nextNum = String(appState.expenses.length + 1).padStart(3, '0');
+      openModal('Catat Pengeluaran Operasional Baru', `
+        <form onsubmit="saveExpenseForm(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">ID Pengeluaran</label>
+              <input type="text" name="id" readonly value="EXP-202611-${nextNum}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-rose-400 font-mono opacity-80" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Tanggal *</label>
+              <input type="date" name="date" required value="2026-11-17" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Kategori *</label>
+              <select name="category" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                ${['Listrik', 'Internet', 'Sewa Toko', 'Gaji Karyawan', 'Transportasi', 'Perawatan', 'Lainnya'].map(c => `<option value="${c}">${c}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Keterangan Pengeluaran *</label>
+            <input type="text" name="description" required placeholder="Contoh: Pembayaran tagihan internet cadangan..." class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Nominal (IDR) *</label>
+              <input type="number" name="amount" required min="1" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-400 mb-1">Metode Pembayaran *</label>
+              <select name="method" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white">
+                <option value="Transfer">Transfer</option>
+                <option value="Cash">Cash</option>
+                <option value="QRIS">QRIS</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+            <button type="submit" class="gradient-btn px-5 py-2 rounded-xl text-white text-sm font-semibold">Simpan Pengeluaran</button>
+          </div>
+        </form>
+      `);
+    }
+
+    function saveExpenseForm(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      appState.expenses.unshift({
+        id: fd.get('id'),
+        date: fd.get('date'),
+        category: fd.get('category'),
+        description: fd.get('description').trim(),
+        amount: Number(fd.get('amount')) || 0,
+        method: fd.get('method')
+      });
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+      showToast('Pengeluaran operasional dicatat & laporan laba rugi diperbarui!');
+    }
+
+    function deleteExpense(id) {
+      appState.expenses = appState.expenses.filter(e => e.id !== id);
+      saveAppState();
+      renderCurrentPage();
+      showToast(`Catatan pengeluaran ${id} dihapus.`, 'warning');
+    }
+
+    // =========================================================================
+    // 14. PAGE 9: LAPORAN KEUANGAN LENGKAP + EKSPOR PDF & EXCEL
+    // =========================================================================
+    function renderReportsPage(container) {
+      const m = computeMetrics();
+
+      // Group expenses by category for Income Statement breakdown
+      const expByCat = {};
+      appState.expenses.forEach(e => {
+        expByCat[e.category] = (expByCat[e.category] || 0) + e.amount;
+      });
+
+      // Weekly Recap (Minggu 1: 1-7 Nov, Minggu 2: 8-14 Nov, Minggu 3: 15-21 Nov, Minggu 4: 22-30 Nov)
+      const weeks = [
+        { label: 'Minggu 1 (01–07 Nov 2026)', start: '2026-11-01', end: '2026-11-07' },
+        { label: 'Minggu 2 (08–14 Nov 2026)', start: '2026-11-08', end: '2026-11-14' },
+        { label: 'Minggu 3 (15–21 Nov 2026)', start: '2026-11-15', end: '2026-11-21' },
+        { label: 'Minggu 4 (22–30 Nov 2026)', start: '2026-11-22', end: '2026-11-30' }
+      ].map(w => {
+        const wSales = m.completedSales.filter(s => s.date >= w.start && s.date <= w.end);
+        const wPOs = appState.purchases.filter(p => p.date >= w.start && p.date <= w.end);
+        return {
+          ...w,
+          salesCount: wSales.length,
+          salesOmzet: wSales.reduce((s, x) => s + x.totalPay, 0),
+          salesProfit: wSales.reduce((s, x) => s + x.profit, 0),
+          poTotal: wPOs.reduce((s, x) => s + x.total, 0)
+        };
+      });
+
+      container.innerHTML = `
+        <!-- Export Action Bar -->
+        <div class="glass-card rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-base font-bold text-white">Laporan Keuangan Komprehensif — ${escapeHTML(appState.settings.periodLabel)}</h3>
+            <p class="text-xs text-slate-400">Seluruh angka terintegrasi real-time dari transaksi penjualan, pembelian, stok & pengeluaran</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <button onclick="exportReportExcel()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-lg">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+              <span>Ekspor Excel (.xlsx)</span>
+            </button>
+            <button onclick="exportReportPDF()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-lg">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+              <span>Ekspor PDF (.pdf)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 CORE FINANCIAL STATEMENTS GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- 1. LAPORAN LABA RUGI -->
+          <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <h4 class="text-sm font-extrabold uppercase tracking-wider text-blue-400">1. Laporan Laba Rugi</h4>
+                <span class="text-[11px] text-slate-400">Income Statement</span>
+              </div>
+              <div class="space-y-2.5 text-xs sm:text-sm">
+                <div class="flex justify-between">
+                  <span class="text-slate-300">Pendapatan Penjualan Bersih</span>
+                  <span class="font-mono font-bold text-white">${formatIDR(m.totalRevenue)}</span>
+                </div>
+                <div class="flex justify-between text-rose-300">
+                  <span>Harga Pokok Penjualan (HPP)</span>
+                  <span class="font-mono">(${formatIDR(m.totalCOGS)})</span>
+                </div>
+                <div class="flex justify-between border-t border-slate-800 pt-2 font-bold text-cyan-300">
+                  <span>Laba Kotor (Gross Profit)</span>
+                  <span class="font-mono">${formatIDR(m.grossProfit)}</span>
+                </div>
+
+                <div class="pt-2">
+                  <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5">Rincian Biaya Operasional:</p>
+                  <div class="space-y-1 pl-2 border-l-2 border-slate-800 text-xs">
+                    ${Object.entries(expByCat).map(([cat, amt]) => `
+                      <div class="flex justify-between text-slate-400">
+                        <span>${escapeHTML(cat)}</span>
+                        <span class="font-mono">${formatIDR(amt)}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+                <div class="flex justify-between text-rose-400 pt-1">
+                  <span>Total Biaya Operasional</span>
+                  <span class="font-mono">(${formatIDR(m.totalExpenses)})</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-3 border-t-2 border-slate-700 flex justify-between items-center">
+              <div>
+                <span class="text-sm font-extrabold text-white block">LABA BERSIH</span>
+                <span class="text-[11px] text-slate-400">Net Margin: ${m.netMargin}%</span>
+              </div>
+              <span class="text-lg font-extrabold font-mono ${m.netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${formatIDR(m.netProfit)}</span>
+            </div>
+          </div>
+
+          <!-- 2. LAPORAN ARUS KAS -->
+          <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <h4 class="text-sm font-extrabold uppercase tracking-wider text-purple-400">2. Laporan Arus Kas</h4>
+                <span class="text-[11px] text-slate-400">Cash Flow Statement</span>
+              </div>
+              <div class="space-y-3 text-xs sm:text-sm">
+                <div class="flex justify-between bg-[#0E1018] p-2.5 rounded-xl">
+                  <span class="text-slate-300">Saldo Kas Awal Periode</span>
+                  <span class="font-mono font-semibold text-white">${formatIDR(m.openingCash)}</span>
+                </div>
+
+                <div>
+                  <p class="text-[11px] uppercase tracking-wider text-emerald-400 font-semibold mb-1">Arus Kas Masuk (Cash In):</p>
+                  <div class="flex justify-between pl-2">
+                    <span class="text-slate-300">Penerimaan Penjualan Tunai/Transfer/QRIS</span>
+                    <span class="font-mono text-emerald-400">+${formatIDR(m.cashIn)}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <p class="text-[11px] uppercase tracking-wider text-rose-400 font-semibold mb-1">Arus Kas Keluar (Cash Out):</p>
+                  <div class="space-y-1.5 pl-2">
+                    <div class="flex justify-between">
+                      <span class="text-slate-300">Pembelian Stok Barang (Lunas)</span>
+                      <span class="font-mono text-rose-400">-${formatIDR(m.paidPurchases)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-300">Pembayaran Biaya Operasional</span>
+                      <span class="font-mono text-rose-400">-${formatIDR(m.totalExpenses)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex justify-between border-t border-slate-800 pt-2 text-xs text-amber-300">
+                  <span>Hutang Usaha PO (Belum Lunas)</span>
+                  <span class="font-mono">${formatIDR(m.unpaidPurchases)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-3 border-t-2 border-slate-700 flex justify-between items-center">
+              <span class="text-sm font-extrabold text-white">SALDO KAS AKHIR</span>
+              <span class="text-lg font-extrabold font-mono text-blue-400">${formatIDR(m.closingCash)}</span>
+            </div>
+          </div>
+
+          <!-- 3. LAPORAN PERSEDIAAN -->
+          <div class="glass-card rounded-2xl p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <h4 class="text-sm font-extrabold uppercase tracking-wider text-cyan-400">3. Laporan Persediaan</h4>
+                <span class="text-[11px] text-slate-400">Inventory Valuation</span>
+              </div>
+              <div class="space-y-3 text-xs sm:text-sm">
+                <div class="flex justify-between">
+                  <span class="text-slate-300">Jumlah SKU Terdaftar</span>
+                  <span class="font-mono font-bold text-white">${appState.products.length} SKU</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-300">Total Barang Masuk (Mutasi +)</span>
+                  <span class="font-mono text-emerald-400">+${formatNumber(m.totalUnitsIn)} Unit</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-300">Total Barang Keluar (Mutasi -)</span>
+                  <span class="font-mono text-rose-400">-${formatNumber(m.totalUnitsOut)} Unit</span>
+                </div>
+                <div class="flex justify-between border-t border-slate-800 pt-2">
+                  <span class="text-slate-200 font-semibold">Stok Fisik Tersisa</span>
+                  <span class="font-mono font-bold text-white">${formatNumber(m.totalStockUnits)} Unit</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-400">Potensi Nilai Jual Retail</span>
+                  <span class="font-mono text-slate-300">${formatIDR(m.totalRetailValue)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-3 border-t-2 border-slate-700 flex justify-between items-center">
+              <span class="text-sm font-extrabold text-white">NILAI ASET STOK</span>
+              <span class="text-lg font-extrabold font-mono text-cyan-400">${formatIDR(m.totalInventoryValue)}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. REKAP MINGGUAN & GRAFIK PERKEMBANGAN OMZET -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="glass-card rounded-2xl p-5">
+            <h4 class="text-base font-bold text-white mb-1">Rekap Penjualan & Pembelian Mingguan</h4>
+            <p class="text-xs text-slate-400 mb-4">Ringkasan kinerja per minggu selama November 2026</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr class="border-b border-slate-800 text-[11px] uppercase text-slate-400">
+                    <th class="py-2.5 px-2">Periode Minggu</th>
+                    <th class="py-2.5 px-2 text-center">Nota</th>
+                    <th class="py-2.5 px-2 text-right">Omzet Jual</th>
+                    <th class="py-2.5 px-2 text-right">Laba Jual</th>
+                    <th class="py-2.5 px-2 text-right">Belanja PO</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  ${weeks.map(w => `
+                    <tr>
+                      <td class="py-2.5 px-2 font-medium text-white">${w.label}</td>
+                      <td class="py-2.5 px-2 text-center text-slate-300">${w.salesCount}</td>
+                      <td class="py-2.5 px-2 text-right font-mono text-blue-400">${formatIDR(w.salesOmzet)}</td>
+                      <td class="py-2.5 px-2 text-right font-mono text-emerald-400">${formatIDR(w.salesProfit)}</td>
+                      <td class="py-2.5 px-2 text-right font-mono text-purple-300">${formatIDR(w.poTotal)}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5">
+            <h4 class="text-base font-bold text-white mb-1">Grafik Perkembangan Omzet & Keuntungan</h4>
+            <p class="text-xs text-slate-400 mb-4">Perbandingan tren omzet vs keuntungan harian November 2026</p>
+            <div class="h-64 w-full">
+              <canvas id="chartReportTrend"></canvas>
+            </div>
+          </div>
+        </div>
+      `;
+
+      renderReportTrendChart(m);
+    }
+
+    function renderReportTrendChart(m) {
+      const ctx = document.getElementById('chartReportTrend');
+      if (!ctx) return;
+
+      const byDate = {};
+      m.completedSales.forEach(s => {
+        if (!byDate[s.date]) byDate[s.date] = { omzet: 0, profit: 0 };
+        byDate[s.date].omzet += s.totalPay;
+        byDate[s.date].profit += s.profit;
+      });
+      const dates = Object.keys(byDate).sort();
+
+      activeCharts.reportTrend = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: dates.map(d => d.slice(8) + ' Nov'),
+          datasets: [
+            {
+              label: 'Omzet Penjualan',
+              data: dates.map(d => byDate[d].omzet),
+              backgroundColor: 'rgba(59, 130, 246, 0.8)',
+              borderRadius: 4
+            },
+            {
+              label: 'Keuntungan Transaksi',
+              data: dates.map(d => byDate[d].profit),
+              backgroundColor: 'rgba(16, 185, 129, 0.85)',
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: '#CBD5E1', font: { size: 11 } } },
+            tooltip: { callbacks: { label: c => `${c.dataset.label}: ${formatIDR(c.raw)}` } }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#94A3B8', font: { size: 10 } } },
+            y: {
+              grid: { color: 'rgba(148,163,184,0.08)' },
+              ticks: { color: '#94A3B8', font: { size: 10 }, callback: v => 'Rp ' + (v / 1000000).toFixed(0) + 'Jt' }
+            }
+          }
+        }
+      });
+    }
+
+    function exportReportExcel() {
+      try {
+        const m = computeMetrics();
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Ringkasan Keuangan
+        const summaryRows = [
+          ['LAPORAN KEUANGAN TERPADU - GVH STORE'],
+          ['Periode Laporan', appState.settings.periodLabel],
+          ['Alamat Toko', appState.settings.address],
+          [],
+          ['POS LAPORAN LABA RUGI', 'NILAI (IDR)'],
+          ['Total Pendapatan Penjualan', m.totalRevenue],
+          ['Harga Pokok Penjualan (HPP)', m.totalCOGS],
+          ['Laba Kotor (Gross Profit)', m.grossProfit],
+          ['Total Biaya Operasional', m.totalExpenses],
+          ['Laba Bersih (Net Profit)', m.netProfit],
+          [],
+          ['POS LAPORAN ARUS KAS & PERSEDIAAN', 'NILAI (IDR)'],
+          ['Saldo Kas Awal', m.openingCash],
+          ['Total Kas Masuk', m.cashIn],
+          ['Total Kas Keluar (PO Lunas + Operasional)', m.cashOut],
+          ['Saldo Kas Akhir', m.closingCash],
+          ['Total Nilai Aset Persediaan Stok', m.totalInventoryValue]
+        ];
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan Keuangan');
+
+        // Sheet 2: Data Penjualan
+        const salesRows = appState.sales.map(s => ({
+          'ID Transaksi': s.id,
+          'Tanggal': s.date,
+          'Pelanggan': s.customer,
+          'Kasir': s.cashier,
+          'Metode Bayar': s.method,
+          'Subtotal': s.subtotal,
+          'Diskon': s.discount,
+          'Total Pembayaran': s.totalPay,
+          'HPP': s.totalCost,
+          'Keuntungan': s.profit,
+          'Status': s.status
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesRows), 'Penjualan');
+
+        // Sheet 3: Inventaris Produk
+        const prodRows = appState.products.map(p => ({
+          'SKU': p.sku,
+          'Nama Produk': p.name,
+          'Kategori': p.category,
+          'Merek': p.brand,
+          'Harga Modal': p.costPrice,
+          'Harga Jual': p.sellPrice,
+          'Stok': p.stock,
+          'Stok Minimum': p.minStock,
+          'Nilai Persediaan': p.stock * p.costPrice,
+          'Supplier': p.supplier
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prodRows), 'Stok Produk');
+
+        // Sheet 4: Pengeluaran
+        const expRows = appState.expenses.map(e => ({
+          'ID': e.id,
+          'Tanggal': e.date,
+          'Kategori': e.category,
+          'Keterangan': e.description,
+          'Metode': e.method,
+          'Nominal': e.amount
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(expRows), 'Pengeluaran');
+
+        XLSX.writeFile(wb, `Laporan_Keuangan_GVH_STORE_Nov2026.xlsx`);
+        showToast('File Excel (.xlsx) berhasil diunduh!');
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal mengekspor Excel: ' + err.message, 'error');
+      }
+    }
+
+    function exportReportPDF() {
+      try {
+        const m = computeMetrics();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        doc.setFontSize(16);
+        doc.setTextColor(20, 30, 60);
+        doc.text(`${appState.settings.storeName} — LAPORAN KEUANGAN`, 14, 18);
+
+        doc.setFontSize(10);
+        doc.setTextColor(90, 100, 120);
+        doc.text(`Periode: ${appState.settings.periodLabel} | ${appState.settings.address}`, 14, 25);
+
+        doc.autoTable({
+          startY: 32,
+          head: [['Keterangan Laporan Keuangan', 'Jumlah (IDR)']],
+          body: [
+            ['Pendapatan Penjualan Bersih', formatIDR(m.totalRevenue)],
+            ['Harga Pokok Penjualan (HPP)', formatIDR(m.totalCOGS)],
+            ['Laba Kotor (Gross Profit)', formatIDR(m.grossProfit)],
+            ['Total Biaya Operasional', formatIDR(m.totalExpenses)],
+            ['LABA BERSIH (NET PROFIT)', formatIDR(m.netProfit)],
+            ['Saldo Kas Awal', formatIDR(m.openingCash)],
+            ['Saldo Kas Akhir', formatIDR(m.closingCash)],
+            ['Total Nilai Aset Persediaan Stok', formatIDR(m.totalInventoryValue)]
+          ],
+          theme: 'grid',
+          headStyles: { fillColor: [37, 99, 235] }
+        });
+
+        doc.text('Ringkasan Transaksi Penjualan (November 2026)', 14, doc.lastAutoTable.finalY + 12);
+        doc.autoTable({
+          startY: doc.lastAutoTable.finalY + 16,
+          head: [['ID Nota', 'Tanggal', 'Pelanggan', 'Kasir', 'Total Bayar', 'Laba']],
+          body: m.completedSales.map(s => [
+            s.id,
+            s.date,
+            s.customer,
+            s.cashier,
+            formatIDR(s.totalPay),
+            formatIDR(s.profit)
+          ]),
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [79, 70, 229] }
+        });
+
+        doc.save(`Laporan_Keuangan_GVH_STORE_Nov2026.pdf`);
+        showToast('Laporan PDF berhasil dibuat & diunduh!');
+      } catch (err) {
+        console.error(err);
+        showToast('Gagal mengekspor PDF: ' + err.message, 'error');
+      }
+    }
+
+    // =========================================================================
+    // 15. PAGE 10: PENGATURAN & KONTROL DATA SIMULASI
+    // =========================================================================
+    function renderSettingsPage(container) {
+      const st = appState.settings;
+      container.innerHTML = `
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Store Profile Form -->
+          <div class="glass-card rounded-2xl p-6 lg:col-span-2">
+            <h3 class="text-base font-bold text-white mb-1">Profil Toko & Konfigurasi Akuntansi</h3>
+            <p class="text-xs text-slate-400 mb-5">Informasi ini akan tampil pada kop Nota Penjualan, Bukti PO, dan Laporan Keuangan</p>
+            <form onsubmit="saveStoreSettings(event)" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Toko *</label>
+                  <input type="text" name="storeName" required value="${escapeHTML(st.storeName)}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Periode Laporan Aktif *</label>
+                  <input type="text" name="periodLabel" required value="${escapeHTML(st.periodLabel)}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Slogan / Bidang Usaha</label>
+                <input type="text" name="tagline" value="${escapeHTML(st.tagline)}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Alamat Lengkap Toko</label>
+                <input type="text" name="address" value="${escapeHTML(st.address)}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Nomor Telepon</label>
+                  <input type="text" name="phone" value="${escapeHTML(st.phone)}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">NPWP Toko</label>
+                  <input type="text" name="npwp" value="${escapeHTML(st.npwp)}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-400 mb-1">Saldo Kas Awal (IDR)</label>
+                  <input type="number" name="openingCash" min="0" value="${st.openingCash}" class="w-full bg-[#0D0F17] border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white font-mono" />
+                </div>
+              </div>
+              <div class="pt-3 flex justify-end">
+                <button type="submit" class="gradient-btn px-5 py-2.5 rounded-xl text-white text-sm font-semibold">Simpan Pengaturan</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Simulation & Database Management -->
+          <div class="glass-card rounded-2xl p-6 space-y-5 flex flex-col justify-between">
+            <div class="space-y-4">
+              <h3 class="text-base font-bold text-white">Manajemen Data Simulasi & Real</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Saat ini sistem memuat <strong class="text-purple-300">Data Simulasi November 2026</strong> (26 produk, 22 penjualan, 13 pembelian, 11 pengeluaran) agar seluruh grafik dan laporan langsung dapat diuji.
+              </p>
+
+              <div class="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/30 space-y-2">
+                <h4 class="text-xs font-bold text-blue-300">Reset ke Data Simulasi Awal</h4>
+                <p class="text-[11px] text-slate-400">Mengembalikan seluruh produk, stok, dan transaksi November 2026 ke kondisi awal simulasi.</p>
+                <button onclick="confirmResetSimulation()" class="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold">
+                  Reset ke Data Simulasi
+                </button>
+              </div>
+
+              <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+                <h4 class="text-xs font-bold text-emerald-300">Mulai Operasional Toko Nyata</h4>
+                <p class="text-[11px] text-slate-400">Menghapus seluruh transaksi simulasi (penjualan, pembelian, pengeluaran) sambil mempertahankan katalog produk & karyawan untuk dipakai toko nyata.</p>
+                <button onclick="confirmStartRealStore()" class="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">
+                  Bersihkan Transaksi Simulasi
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-800 space-y-2">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Backup Data JSON</p>
+              <button onclick="downloadBackupJSON()" class="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
+                Unduh Backup Database (.json)
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function saveStoreSettings(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      appState.settings.storeName = fd.get('storeName').trim();
+      appState.settings.periodLabel = fd.get('periodLabel').trim();
+      appState.settings.tagline = fd.get('tagline').trim();
+      appState.settings.address = fd.get('address').trim();
+      appState.settings.phone = fd.get('phone').trim();
+      appState.settings.npwp = fd.get('npwp').trim();
+      appState.settings.openingCash = Number(fd.get('openingCash')) || 0;
+
+      saveAppState();
+      renderCurrentPage();
+      showToast('Pengaturan toko & saldo awal kas berhasil disimpan!');
+    }
+
+    function confirmResetSimulation() {
+      openModal('Reset ke Data Simulasi November 2026', `
+        <p class="text-sm text-slate-300 mb-4">Seluruh perubahan yang Anda buat akan diganti kembali dengan <strong>Data Simulasi Awal GVH STORE (November 2026)</strong>. Lanjutkan?</p>
+        <div class="flex justify-end gap-3">
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+          <button onclick="executeResetSimulation()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold">Ya, Reset Simulasi</button>
+        </div>
+      `);
+    }
+
+    function executeResetSimulation() {
+      appState = generateInitialSimulationState();
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+      showToast('Sistem berhasil di-reset ke Data Simulasi November 2026!', 'info');
+    }
+
+    function confirmStartRealStore() {
+      openModal('Mulai Mode Operasional Toko Nyata', `
+        <p class="text-sm text-slate-300 mb-4">
+          Tindakan ini akan mengosongkan riwayat transaksi simulasi (Penjualan, Pembelian, Pengeluaran, dan Mutasi Stok) serta mengubah label sistem menjadi <strong class="text-emerald-400">DATA OPERASIONAL AKTIF</strong>. Master data produk, karyawan, dan supplier tetap tersimpan.
+        </p>
+        <div class="flex justify-end gap-3">
+          <button onclick="closeModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-sm">Batal</button>
+          <button onclick="executeStartRealStore()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold">Aktifkan Toko Nyata</button>
+        </div>
+      `);
+    }
+
+    function executeStartRealStore() {
+      appState.sales = [];
+      appState.purchases = [];
+      appState.expenses = [];
+      appState.stockLogs = [];
+      appState.settings.isSimulation = false;
+      saveAppState();
+      closeModal();
+      renderCurrentPage();
+      showToast('Mode Operasional Toko Nyata aktif! Silakan mulai mencatat transaksi.');
+    }
+
+    function downloadBackupJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `Backup_GVH_STORE_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+      showToast('Backup JSON berhasil diunduh!');
+    }
+
+    // =========================================================================
+    // 16. MODAL CONTROLLER & INITIALIZATION
+    // =========================================================================
+    function openModal(title, htmlContent) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').innerHTML = htmlContent;
+      const overlay = document.getElementById('modal-overlay');
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+    }
+
+    function closeModal() {
+      const overlay = document.getElementById('modal-overlay');
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      navigateTo('dashboard');
+    });
+  </script>
+</body>
+</html>
